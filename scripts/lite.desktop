@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=lite
+GenericName=Text Editor
+Comment=A lightweight, fast terminal text editor
+Exec=lite %F
+Icon=lite
+Terminal=true
+Type=Application
+Categories=Development;TextEditor;Utility;
+MimeType=text/plain;text/x-csrc;text/x-c++src;text/x-java;text/x-python;text/x-ruby;text/x-rust;text/x-shellscript;text/javascript;text/css;text/html;text/xml;application/json;application/x-yaml;
+Keywords=text;editor;programming;code;terminal;
+StartupNotify=true

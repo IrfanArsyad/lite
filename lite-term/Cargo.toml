@@ -1,0 +1,58 @@
+[package]
+name = "lite-term"
+description = "A lightweight, fast terminal text editor inspired by nano and Sublime Text"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+readme = "../README.md"
+homepage = "https://github.com/irfan/lite"
+repository = "https://github.com/irfan/lite"
+keywords = ["editor", "terminal", "tui", "text-editor", "cli"]
+categories = ["command-line-utilities", "text-editors"]
+
+[[bin]]
+name = "lite"
+path = "src/main.rs"
+
+[package.metadata.deb]
+name = "lite"
+maintainer = "Irfan <irfan@example.com>"
+copyright = "2025, Irfan"
+license-file = ["../LICENSE", "0"]
+extended-description = """
+lite is a lightweight, fast, and modern terminal text editor.
+Features:
+- Sublime-style keybindings (Ctrl+P, Ctrl+D, Ctrl+Shift+K, etc.)
+- Multi-cursor editing
+- Split views and tabs
+- Syntax highlighting (tree-sitter)
+- LSP support for autocompletion
+- Git integration
+- Efficient and low memory usage
+"""
+section = "editors"
+priority = "optional"
+depends = "$auto"
+assets = [
+    ["target/release/lite", "usr/bin/", "755"],
+    ["../README.md", "usr/share/doc/lite/", "644"],
+    ["../LICENSE", "usr/share/doc/lite/", "644"],
+    ["../man/lite.1", "usr/share/man/man1/", "644"],
+    ["../completions/lite.bash", "usr/share/bash-completion/completions/lite", "644"],
+    ["../completions/lite.fish", "usr/share/fish/vendor_completions.d/", "644"],
+    ["../completions/_lite", "usr/share/zsh/vendor-completions/", "644"],
+]
+
+[dependencies]
+lite-core.workspace = true
+lite-view.workspace = true
+lite-ui.workspace = true
+lite-config.workspace = true
+lite-lsp.workspace = true
+lite-git.workspace = true
+ratatui.workspace = true
+crossterm.workspace = true
+tokio.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true

@@ -1,0 +1,11 @@
+[package]
+name = "lite-git"
+description = "Git integration for lite editor"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+git2.workspace = true
+thiserror.workspace = true
+parking_lot.workspace = true

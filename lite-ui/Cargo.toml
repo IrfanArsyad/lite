@@ -1,0 +1,13 @@
+[package]
+name = "lite-ui"
+description = "UI widgets for lite editor"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+lite-core.workspace = true
+lite-view.workspace = true
+lite-config.workspace = true
+ratatui.workspace = true
+unicode-width.workspace = true

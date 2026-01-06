@@ -1,0 +1,13 @@
+[package]
+name = "lite-core"
+description = "Core text primitives for lite editor"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+ropey.workspace = true
+unicode-width.workspace = true
+unicode-segmentation.workspace = true
+smallvec.workspace = true
+thiserror.workspace = true

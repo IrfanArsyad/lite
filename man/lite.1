@@ -1,0 +1,156 @@
+.TH LITE 1 "January 2025" "lite 0.1.0" "User Commands"
+.SH NAME
+lite \- a lightweight, fast terminal text editor
+.SH SYNOPSIS
+.B lite
+[\fIFILE\fR]...
+.SH DESCRIPTION
+.B lite
+is a modern, lightweight terminal text editor inspired by nano and Sublime Text.
+It provides a familiar editing experience with powerful features like multi-cursor
+editing, split views, syntax highlighting, and LSP support.
+.SH OPTIONS
+.TP
+.BR \-h ", " \-\-help
+Display help information and exit.
+.TP
+.BR \-V ", " \-\-version
+Display version information and exit.
+.SH KEYBINDINGS
+.SS File Operations
+.TP
+.B Ctrl+S
+Save file
+.TP
+.B Ctrl+Shift+S
+Save as
+.TP
+.B Ctrl+O
+Open file
+.TP
+.B Ctrl+P
+Quick open (fuzzy finder)
+.TP
+.B Ctrl+W
+Close buffer
+.TP
+.B Ctrl+Q
+Quit
+.SS Navigation
+.TP
+.B Ctrl+G
+Go to line
+.TP
+.B Ctrl+Home
+Go to start of file
+.TP
+.B Ctrl+End
+Go to end of file
+.TP
+.B Ctrl+Left/Right
+Move by word
+.SS Editing
+.TP
+.B Ctrl+Z
+Undo
+.TP
+.B Ctrl+Shift+Z, Ctrl+Y
+Redo
+.TP
+.B Ctrl+D
+Select word / next occurrence
+.TP
+.B Ctrl+Shift+D
+Duplicate line
+.TP
+.B Ctrl+Shift+K
+Delete line
+.TP
+.B Ctrl+/
+Toggle comment
+.TP
+.B Ctrl+Shift+Up/Down
+Move line up/down
+.SS Multi-cursor
+.TP
+.B Alt+Shift+Up/Down
+Add cursor above/below
+.TP
+.B Ctrl+Click
+Add cursor at click position
+.TP
+.B Escape
+Clear multi-cursors
+.SS Search
+.TP
+.B Ctrl+F
+Find
+.TP
+.B Ctrl+H
+Replace
+.TP
+.B F3
+Find next
+.TP
+.B Shift+F3
+Find previous
+.SS Splits
+.TP
+.B Ctrl+\\
+Split vertical
+.TP
+.B Ctrl+Shift+\\
+Split horizontal
+.SS LSP
+.TP
+.B Ctrl+Space
+Autocomplete
+.TP
+.B F12
+Go to definition
+.TP
+.B Shift+F12
+Find references
+.TP
+.B F2
+Rename symbol
+.SH FILES
+.TP
+.I ~/.config/lite/config.toml
+User configuration file
+.TP
+.I ~/.config/lite/themes/
+Custom themes directory
+.SH ENVIRONMENT
+.TP
+.B LITE_LOG
+Set log level (debug, info, warn, error)
+.SH EXIT STATUS
+.TP
+.B 0
+Successful program execution
+.TP
+.B 1
+Error during execution
+.SH EXAMPLES
+.TP
+Open a file:
+.B lite myfile.txt
+.TP
+Open multiple files:
+.B lite file1.rs file2.rs
+.TP
+Create new file:
+.B lite newfile.txt
+.SH BUGS
+Report bugs at: https://github.com/irfan/lite/issues
+.SH AUTHOR
+Written by Irfan.
+.SH COPYRIGHT
+Copyright \(co 2025 Irfan.
+Licensed under MIT License.
+.SH SEE ALSO
+.BR nano (1),
+.BR vim (1),
+.BR nvim (1),
+.BR hx (1)

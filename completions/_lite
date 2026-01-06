@@ -1,0 +1,17 @@
+#compdef lite
+
+# Zsh completion for lite
+
+_lite() {
+    local -a opts
+    opts=(
+        '-h[Display help information]'
+        '--help[Display help information]'
+        '-V[Display version information]'
+        '--version[Display version information]'
+    )
+
+    _arguments -s $opts '*:file:_files'
+}
+
+_lite "$@"
