@@ -27,16 +27,8 @@ pub fn execute_action(editor: &mut Editor, action: &Action) {
             editor.close_view();
         }
         Action::Quit => {
-            // Check for unsaved changes
-            let has_unsaved = editor.documents.values().any(|d| d.modified);
-            if has_unsaved {
-                editor.set_status(
-                    "Unsaved changes. Use :q! to force quit.",
-                    Severity::Warning,
-                );
-            } else {
-                editor.should_quit = true;
-            }
+            // Just quit - user can save with Ctrl+S first if needed
+            editor.should_quit = true;
         }
 
         // Navigation
