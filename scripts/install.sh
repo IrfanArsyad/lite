@@ -168,15 +168,22 @@ download_binary() {
 main() {
     detect_platform
 
-    echo
-    echo "Installation options:"
-    echo "  1) Download pre-built binary (fastest)"
-    echo "  2) Build from source (requires Rust)"
-    echo "  3) Cancel"
-    echo
+    # Auto-select option 1 if non-interactive (piped)
+    if [ ! -t 0 ]; then
+        echo
+        echo "Non-interactive mode detected. Auto-selecting build from source..."
+        choice=2
+    else
+        echo
+        echo "Installation options:"
+        echo "  1) Download pre-built binary (fastest)"
+        echo "  2) Build from source (requires Rust)"
+        echo "  3) Cancel"
+        echo
 
-    read -p "Select option [1]: " choice
-    choice=${choice:-1}
+        read -p "Select option [1]: " choice
+        choice=${choice:-1}
+    fi
 
     case $choice in
         1)
