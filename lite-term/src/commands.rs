@@ -31,7 +31,7 @@ pub fn execute_action(editor: &mut Editor, action: &Action) {
             let has_unsaved = editor.documents.values().any(|d| d.modified);
             if has_unsaved {
                 editor.set_status(
-                    "Unsaved changes. Use :q! to force quit.".into(),
+                    "Unsaved changes. Use :q! to force quit.",
                     Severity::Warning,
                 );
             } else {
@@ -293,13 +293,15 @@ fn page_move(editor: &mut Editor, direction: Direction) {
 
 fn insert_char(editor: &mut Editor, c: char) {
     let view_id = editor.tree.focus();
+    let indent_style = editor.config.editor.indent_style;
+    let tab_width = editor.config.editor.tab_width;
+
     let doc = editor.current_doc_mut();
     let selection = doc.selection(view_id);
     let cursor = selection.cursor();
 
-    let text = if c == '\t' && editor.config.editor.indent_style == lite_config::IndentStyle::Spaces
-    {
-        " ".repeat(editor.config.editor.tab_width)
+    let text = if c == '\t' && indent_style == lite_config::IndentStyle::Spaces {
+        " ".repeat(tab_width)
     } else {
         c.to_string()
     };
@@ -516,6 +518,8 @@ fn indent(editor: &mut Editor) {
 
 fn unindent(editor: &mut Editor) {
     let view_id = editor.tree.focus();
+    let tab_width = editor.config.editor.tab_width;
+
     let doc = editor.current_doc_mut();
     let selection = doc.selection(view_id);
     let cursor = selection.cursor();
@@ -528,7 +532,7 @@ fn unindent(editor: &mut Editor) {
         1
     } else {
         let spaces: usize = line_text.chars().take_while(|c| *c == ' ').count();
-        spaces.min(editor.config.editor.tab_width)
+        spaces.min(tab_width)
     };
 
     if remove_count > 0 {
@@ -681,7 +685,7 @@ fn copy(editor: &mut Editor) {
         editor.clipboard = text;
     }
 
-    editor.set_status("Copied".into(), Severity::Info);
+    editor.set_status("Copied", Severity::Info);
 }
 
 fn cut(editor: &mut Editor) {
@@ -727,7 +731,7 @@ fn undo(editor: &mut Editor) {
     let view_id = editor.tree.focus();
     let doc = editor.current_doc_mut();
     if !doc.undo(view_id) {
-        editor.set_status("Nothing to undo".into(), Severity::Info);
+        editor.set_status("Nothing to undo", Severity::Info);
     }
 }
 
@@ -735,6 +739,6 @@ fn redo(editor: &mut Editor) {
     let view_id = editor.tree.focus();
     let doc = editor.current_doc_mut();
     if !doc.redo(view_id) {
-        editor.set_status("Nothing to redo".into(), Severity::Info);
+        editor.set_status("Nothing to redo", Severity::Info);
     }
 }

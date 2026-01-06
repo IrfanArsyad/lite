@@ -103,12 +103,13 @@ impl Editor {
         let path = path.into();
 
         // Check if already open
-        for (id, doc) in &self.documents {
-            if doc.path.as_ref() == Some(&path) {
-                // Switch to existing document
-                self.switch_to_document(*id);
-                return Ok(*id);
-            }
+        let existing_id = self.documents.iter()
+            .find(|(_, doc)| doc.path.as_ref() == Some(&path))
+            .map(|(id, _)| *id);
+
+        if let Some(id) = existing_id {
+            self.switch_to_document(id);
+            return Ok(id);
         }
 
         // Open new document
@@ -221,7 +222,7 @@ impl Editor {
         if let Some(doc) = doc {
             if doc.modified {
                 self.set_status(
-                    "Buffer has unsaved changes. Use :q! to force quit.".into(),
+                    "Buffer has unsaved changes. Use :q! to force quit.",
                     Severity::Warning,
                 );
                 return false;

@@ -313,9 +313,6 @@ impl Default for Document {
     }
 }
 
-// Default selection for views that don't have one yet
-static DEFAULT_SELECTION: Selection = Selection::point(0);
-
 /// Detect language from file extension
 fn detect_language(path: &PathBuf) -> Option<String> {
     let ext = path.extension()?.to_str()?;
