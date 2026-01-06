@@ -48,11 +48,9 @@ lite-core.workspace = true
 lite-view.workspace = true
 lite-ui.workspace = true
 lite-config.workspace = true
-lite-lsp.workspace = true
-lite-git.workspace = true
+# lite-lsp.workspace = true  # Disabled for smaller binary
+# lite-git.workspace = true  # Disabled for smaller binary
 ratatui.workspace = true
 crossterm.workspace = true
-tokio.workspace = true
+tokio = { version = "1", features = ["rt", "sync", "time"], default-features = false }
 anyhow.workspace = true
-tracing.workspace = true
-tracing-subscriber.workspace = true

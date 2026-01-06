@@ -2,7 +2,6 @@ use anyhow::Result;
 use lite_term::Application;
 use std::env;
 use std::process::Command;
-use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const REPO: &str = "IrfanArsyad/lite";
@@ -146,15 +145,6 @@ async fn main() -> Result<()> {
             }
             _ => {}
         }
-    }
-
-    // Setup logging (to file to avoid messing with TUI)
-    let log_file = std::fs::File::create("/tmp/lite.log").ok();
-    if let Some(file) = log_file {
-        tracing_subscriber::registry()
-            .with(fmt::layer().with_writer(file))
-            .with(EnvFilter::from_default_env().add_directive("lite=debug".parse()?))
-            .init();
     }
 
     // Create application
