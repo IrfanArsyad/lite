@@ -2,12 +2,14 @@
 
 mod compositor;
 mod editor_view;
+mod helpbar;
 mod prompt;
 mod statusline;
 mod tabline;
 
 pub use compositor::{Component, Compositor, Context, EventResult};
 pub use editor_view::EditorView;
+pub use helpbar::HelpBar;
 pub use prompt::Prompt;
 pub use statusline::StatusLine;
 pub use tabline::TabLine;

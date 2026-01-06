@@ -6,7 +6,7 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use lite_config::{Action, Key, KeyEvent, Modifier};
-use lite_ui::{Compositor, Component, Context, EditorView, EventResult, StatusLine, TabLine};
+use lite_ui::{Compositor, Component, Context, EditorView, EventResult, HelpBar, StatusLine, TabLine};
 use lite_view::Editor;
 use ratatui::{backend::CrosstermBackend, layout::Rect, Terminal};
 use std::io::{self, Stdout};
@@ -86,7 +86,7 @@ impl Application {
         self.terminal.draw(|frame| {
             let area = frame.area();
 
-            // Layout: tab line (1), editor (remaining - 1), status line (1)
+            // Layout: tab line (1), editor (remaining - 4), status line (1), help bar (2)
             let tab_area = Rect {
                 x: area.x,
                 y: area.y,
@@ -97,19 +97,26 @@ impl Application {
                 x: area.x,
                 y: area.y + 1,
                 width: area.width,
-                height: area.height.saturating_sub(2),
+                height: area.height.saturating_sub(4),
             };
             let status_area = Rect {
                 x: area.x,
-                y: area.height.saturating_sub(1),
+                y: area.height.saturating_sub(3),
                 width: area.width,
                 height: 1,
+            };
+            let help_area = Rect {
+                x: area.x,
+                y: area.height.saturating_sub(2),
+                width: area.width,
+                height: 2,
             };
 
             // Render base layers
             TabLine::new().render(frame, tab_area, &ctx);
             EditorView::new().render(frame, editor_area, &ctx);
             StatusLine::new().render(frame, status_area, &ctx);
+            HelpBar::new().render(frame, help_area, &ctx);
 
             // Render compositor layers (popups, etc.)
             self.compositor.render(frame, area, &ctx);
