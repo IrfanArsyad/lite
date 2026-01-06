@@ -60,6 +60,11 @@ impl Application {
         Ok(())
     }
 
+    /// Set update notice to show in status bar
+    pub fn set_update_notice(&mut self, msg: String) {
+        self.editor.set_status(msg, lite_view::Severity::Info);
+    }
+
     /// Run the application main loop
     pub async fn run(&mut self) -> Result<()> {
         // Start event handler
