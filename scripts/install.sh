@@ -98,8 +98,13 @@ build_from_source() {
 
     # Install binary
     echo "Installing binary..."
+    # Remove old binary first (handles "Text file busy" error during self-update)
+    if [ -f "$INSTALL_DIR/lite" ]; then
+        sudo rm -f "$INSTALL_DIR/lite" 2>/dev/null || sudo mv "$INSTALL_DIR/lite" "$INSTALL_DIR/lite.old"
+    fi
     sudo cp target/release/lite "$INSTALL_DIR/"
     sudo chmod +x "$INSTALL_DIR/lite"
+    sudo rm -f "$INSTALL_DIR/lite.old" 2>/dev/null
 
     # Install man page
     if [ -f man/lite.1 ]; then
