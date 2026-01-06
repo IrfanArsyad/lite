@@ -211,7 +211,7 @@ impl ChangeSet {
                         len_b = 0;
                     }
                 }
-                (Some(Operation::Retain(_a)), Some(Operation::Insert(s))) => {
+                (Some(Operation::Retain(_)), Some(Operation::Insert(s))) => {
                     composed.ops.push(Operation::Insert(s.clone()));
                     ops_b.next();
                 }
@@ -234,18 +234,6 @@ impl ChangeSet {
                     composed.ops.push(Operation::Insert(s.clone()));
                     ops_a.next();
                     ops_b.next();
-                }
-                (Some(Operation::Retain(_)), Some(Operation::Delete(_))) => {
-                    // Already handled above
-                    unreachable!()
-                }
-                (Some(Operation::Insert(_)), Some(Operation::Retain(_))) => {
-                    // Already handled above
-                    unreachable!()
-                }
-                (Some(Operation::Insert(_)), Some(Operation::Insert(_))) => {
-                    // Already handled above
-                    unreachable!()
                 }
             }
         }

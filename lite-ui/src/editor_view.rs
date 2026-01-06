@@ -2,7 +2,6 @@ use crate::{Component, Context};
 use lite_core::RopeExt;
 use ratatui::prelude::*;
 use ratatui::widgets::Paragraph;
-use unicode_width::UnicodeWidthStr;
 
 /// Main editor view component
 pub struct EditorView;
