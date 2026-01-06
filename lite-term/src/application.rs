@@ -1,7 +1,6 @@
 use crate::{execute_action, Event, EventHandler};
 use anyhow::Result;
 use crossterm::{
-    cursor,
     event::{DisableMouseCapture, EnableMouseCapture},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},

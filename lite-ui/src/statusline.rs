@@ -1,4 +1,4 @@
-use crate::{Component, Context, EventResult};
+use crate::{Component, Context};
 use lite_core::RopeExt;
 use ratatui::prelude::*;
 use ratatui::widgets::Paragraph;
@@ -21,7 +21,7 @@ impl Default for StatusLine {
 impl Component for StatusLine {
     fn render(&self, frame: &mut Frame, area: Rect, ctx: &Context) {
         let doc = ctx.editor.current_doc();
-        let view = ctx.editor.current_view();
+        let _view = ctx.editor.current_view();
         let selection = doc.selection(ctx.editor.tree.focus());
 
         // Left side: mode, filename, modified
@@ -46,7 +46,7 @@ impl Component for StatusLine {
         let right_info = format!(" {} | {} | {} ", language, encoding, line_ending);
 
         // Check for status message
-        let (left_text, left_style) = if let Some((msg, severity)) = &ctx.editor.status_msg {
+        let (left_text, _left_style) = if let Some((msg, severity)) = &ctx.editor.status_msg {
             let style = match severity {
                 lite_view::Severity::Info => ctx.editor.theme.info.to_ratatui(),
                 lite_view::Severity::Warning => ctx.editor.theme.warning.to_ratatui(),

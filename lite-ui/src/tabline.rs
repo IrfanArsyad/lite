@@ -1,4 +1,4 @@
-use crate::{Component, Context, EventResult};
+use crate::{Component, Context};
 use ratatui::prelude::*;
 use ratatui::widgets::Paragraph;
 

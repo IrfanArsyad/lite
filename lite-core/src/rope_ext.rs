@@ -4,7 +4,7 @@ use ropey::{Rope, RopeSlice};
 /// Extension trait for Rope with utility methods
 pub trait RopeExt {
     /// Get the line at the given index, or None if out of bounds
-    fn get_line(&self, line_idx: usize) -> Option<RopeSlice>;
+    fn get_line(&self, line_idx: usize) -> Option<RopeSlice<'_>>;
 
     /// Get line count (excluding trailing empty line if file ends with newline)
     fn len_lines_display(&self) -> usize;
@@ -38,7 +38,7 @@ pub trait RopeExt {
 }
 
 impl RopeExt for Rope {
-    fn get_line(&self, line_idx: usize) -> Option<RopeSlice> {
+    fn get_line(&self, line_idx: usize) -> Option<RopeSlice<'_>> {
         if line_idx < self.len_lines() {
             Some(self.line(line_idx))
         } else {

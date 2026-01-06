@@ -211,7 +211,7 @@ impl ChangeSet {
                         len_b = 0;
                     }
                 }
-                (Some(Operation::Retain(a)), Some(Operation::Insert(s))) => {
+                (Some(Operation::Retain(_a)), Some(Operation::Insert(s))) => {
                     composed.ops.push(Operation::Insert(s.clone()));
                     ops_b.next();
                 }

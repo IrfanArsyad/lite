@@ -62,7 +62,7 @@ impl Node {
     pub fn find_sibling(&self, view_id: ViewId, direction: Direction) -> Option<ViewId> {
         match self {
             Node::Leaf(_) => None,
-            Node::Container { layout, children, .. } => {
+            Node::Container { layout: _, children, .. } => {
                 // Check if view_id is a direct child
                 let idx = children.iter().position(|c| {
                     matches!(c, Node::Leaf(id) if *id == view_id)

@@ -254,7 +254,7 @@ impl Selection {
 
         // Merge overlapping ranges
         let mut merged: SmallVec<[Range; 1]> = SmallVec::new();
-        let mut primary_range = *self.primary();
+        let primary_range = *self.primary();
 
         for range in &self.ranges {
             if let Some(last) = merged.last_mut() {

@@ -1,8 +1,7 @@
-use crate::{Component, Context, EventResult};
-use lite_config::KeyEvent;
+use crate::{Component, Context};
 use lite_core::RopeExt;
 use ratatui::prelude::*;
-use ratatui::widgets::{Block, Borders, Paragraph};
+use ratatui::widgets::Paragraph;
 use unicode_width::UnicodeWidthStr;
 
 /// Main editor view component
@@ -94,7 +93,7 @@ impl Component for EditorView {
 
             // Check for selection highlighting
             let mut spans = Vec::new();
-            let mut current_pos = 0;
+            let _current_pos = 0;
             let line_chars: Vec<char> = visible_text.chars().collect();
 
             for (i, ch) in line_chars.iter().enumerate() {
