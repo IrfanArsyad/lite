@@ -62,7 +62,7 @@ source ~/.cargo/env
 
 ```bash
 # Clone repository
-git clone https://github.com/irfan/lite.git
+git clone https://github.com/IrfanArsyad/lite.git
 cd lite
 
 # Build dan install
@@ -81,7 +81,7 @@ sudo cp target/release/lite /usr/local/bin/
 ### Metode 3: Install via Cargo
 
 ```bash
-cargo install --git https://github.com/irfan/lite.git lite-term
+cargo install --git https://github.com/IrfanArsyad/lite.git lite-term
 ```
 
 ---
@@ -92,7 +92,7 @@ cargo install --git https://github.com/irfan/lite.git lite-term
 
 ```bash
 # Download package terbaru
-wget https://github.com/irfan/lite/releases/latest/download/lite_0.1.0_amd64.deb
+wget https://github.com/IrfanArsyad/lite/releases/latest/download/lite_0.1.0_amd64.deb
 
 # Install
 sudo dpkg -i lite_0.1.0_amd64.deb
@@ -108,7 +108,7 @@ sudo apt install ./lite_0.1.0_amd64.deb
 cargo install cargo-deb
 
 # Clone dan build
-git clone https://github.com/irfan/lite.git
+git clone https://github.com/IrfanArsyad/lite.git
 cd lite
 make deb
 
@@ -317,7 +317,7 @@ source ~/.bashrc
 
 ```bash
 # Clone
-git clone https://github.com/irfan/lite.git
+git clone https://github.com/IrfanArsyad/lite.git
 cd lite
 
 # Build debug

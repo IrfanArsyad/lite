@@ -1,6 +1,6 @@
 #!/bin/bash
 # lite editor installer script
-# Usage: curl -fsSL https://raw.githubusercontent.com/irfan/lite/main/scripts/install.sh | bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/IrfanArsyad/lite/main/scripts/install.sh | bash
 
 set -e
 
@@ -12,7 +12,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-REPO="irfan/lite"
+REPO="IrfanArsyad/lite"
 BINARY_NAME="lite"
 INSTALL_DIR="/usr/local/bin"
 
