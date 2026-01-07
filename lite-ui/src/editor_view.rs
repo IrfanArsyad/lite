@@ -1,5 +1,6 @@
 use crate::{Component, Context};
 use lite_core::RopeExt;
+use lite_view::{highlighter, Highlight, HighlightSpan};
 use ratatui::prelude::*;
 use ratatui::widgets::Paragraph;
 
@@ -9,6 +10,41 @@ pub struct EditorView;
 impl EditorView {
     pub fn new() -> Self {
         Self
+    }
+
+    /// Get the style for a highlight type from theme
+    fn highlight_style(highlight: Highlight, ctx: &Context) -> ratatui::style::Style {
+        match highlight {
+            Highlight::Keyword => ctx.editor.theme.keyword.to_ratatui(),
+            Highlight::Function => ctx.editor.theme.function.to_ratatui(),
+            Highlight::Type => ctx.editor.theme.type_name.to_ratatui(),
+            Highlight::Variable => ctx.editor.theme.variable.to_ratatui(),
+            Highlight::Constant => ctx.editor.theme.constant.to_ratatui(),
+            Highlight::String => ctx.editor.theme.string.to_ratatui(),
+            Highlight::Number => ctx.editor.theme.number.to_ratatui(),
+            Highlight::Comment => ctx.editor.theme.comment.to_ratatui(),
+            Highlight::Operator => ctx.editor.theme.operator.to_ratatui(),
+            Highlight::Punctuation => ctx.editor.theme.punctuation.to_ratatui(),
+            Highlight::Property => ctx.editor.theme.variable.to_ratatui(),
+            Highlight::Parameter => ctx.editor.theme.variable.to_ratatui(),
+            Highlight::Label => ctx.editor.theme.constant.to_ratatui(),
+            Highlight::Namespace => ctx.editor.theme.type_name.to_ratatui(),
+            Highlight::Attribute => ctx.editor.theme.keyword.to_ratatui(),
+        }
+    }
+
+    /// Find the highlight for a byte position
+    fn find_highlight(byte_pos: usize, highlights: &[HighlightSpan]) -> Option<Highlight> {
+        // Binary search could be used for optimization, but linear is fine for now
+        for span in highlights {
+            if byte_pos >= span.start && byte_pos < span.end {
+                return Some(span.highlight);
+            }
+            if span.start > byte_pos {
+                break;
+            }
+        }
+        None
     }
 }
 
@@ -63,6 +99,14 @@ impl Component for EditorView {
             .style(ctx.editor.theme.background.to_ratatui());
         frame.render_widget(gutter_widget, gutter_area);
 
+        // Get syntax highlights
+        let source = doc.text();
+        let highlights = if let Some(ref lang) = doc.language {
+            highlighter().highlight(lang, &source)
+        } else {
+            Vec::new()
+        };
+
         // Render text content
         let selection = doc.selection(ctx.editor.tree.focus());
         let mut text_lines = Vec::new();
@@ -78,7 +122,8 @@ impl Component for EditorView {
             }
 
             let line = doc.rope.line(line_idx);
-            let line_start = doc.rope.line_to_char(line_idx);
+            let line_start_char = doc.rope.line_to_char(line_idx);
+            let line_start_byte = doc.rope.char_to_byte(line_start_char);
             let line_text: String = line.chars().collect();
             let line_text = line_text.trim_end_matches('\n').trim_end_matches('\r');
 
@@ -90,20 +135,28 @@ impl Component for EditorView {
                 ""
             };
 
-            // Check for selection highlighting
+            // Build spans with syntax highlighting
             let mut spans = Vec::new();
-            let _current_pos = 0;
             let line_chars: Vec<char> = visible_text.chars().collect();
 
+            // Calculate byte offset for scroll_x
+            let scroll_byte_offset: usize = line_text.chars().take(scroll_x).map(|c| c.len_utf8()).sum();
+
+            let mut byte_offset = 0;
             for (i, ch) in line_chars.iter().enumerate() {
-                let char_idx = line_start + scroll_x + i;
+                let char_idx = line_start_char + scroll_x + i;
+                let byte_pos = line_start_byte + scroll_byte_offset + byte_offset;
+
                 let in_selection = selection
                     .ranges()
                     .iter()
                     .any(|r| char_idx >= r.start() && char_idx < r.end());
 
+                // Determine style based on selection and syntax highlighting
                 let style = if in_selection {
                     ctx.editor.theme.selection.to_ratatui()
+                } else if let Some(highlight) = Self::find_highlight(byte_pos, &highlights) {
+                    Self::highlight_style(highlight, ctx)
                 } else {
                     ctx.editor.theme.foreground.to_ratatui()
                 };
@@ -116,6 +169,7 @@ impl Component for EditorView {
                 };
 
                 spans.push(Span::styled(display_char, style));
+                byte_offset += ch.len_utf8();
             }
 
             if spans.is_empty() {
