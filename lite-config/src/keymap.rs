@@ -198,6 +198,11 @@ pub enum Action {
     CommandPalette,
     ToggleFileTree,
 
+    // Internal - Prompt results
+    ExecuteGotoLine(String),
+    ExecuteSearch(String),
+    ExecuteOpen(String),
+
     // Misc
     Noop,
 }

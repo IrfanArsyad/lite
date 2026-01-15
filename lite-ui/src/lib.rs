@@ -10,6 +10,6 @@ mod tabline;
 pub use compositor::{Component, Compositor, Context, EventResult};
 pub use editor_view::EditorView;
 pub use helpbar::HelpBar;
-pub use prompt::Prompt;
+pub use prompt::{Prompt, PromptType};
 pub use statusline::StatusLine;
 pub use tabline::TabLine;

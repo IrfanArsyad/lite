@@ -18,6 +18,7 @@ pub struct Prompt {
     prompt_type: PromptType,
     input: String,
     cursor: usize,
+    submitted: bool,
 }
 
 impl Prompt {
@@ -26,6 +27,7 @@ impl Prompt {
             prompt_type,
             input: String::new(),
             cursor: 0,
+            submitted: false,
         }
     }
 
@@ -41,6 +43,10 @@ impl Prompt {
 
     pub fn input(&self) -> &str {
         &self.input
+    }
+
+    pub fn is_submitted(&self) -> bool {
+        self.submitted
     }
 
     fn prefix(&self) -> &str {
@@ -115,9 +121,14 @@ impl Component for Prompt {
 
             // Submit
             (Key::Enter, Modifier::NONE) => {
-                // Return appropriate action based on prompt type
-                // The actual handling is done by the application
-                return EventResult::Consumed;
+                self.submitted = true;
+                let action = match self.prompt_type {
+                    PromptType::GotoLine => Action::ExecuteGotoLine(self.input.clone()),
+                    PromptType::Search => Action::ExecuteSearch(self.input.clone()),
+                    PromptType::Open => Action::ExecuteOpen(self.input.clone()),
+                    _ => Action::Noop,
+                };
+                return EventResult::Action(action);
             }
 
             // Character input

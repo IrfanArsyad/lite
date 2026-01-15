@@ -146,6 +146,9 @@ pub fn execute_action(editor: &mut Editor, action: &Action) {
         // UI - handled by application
         Action::CommandPalette | Action::ToggleFileTree => {}
 
+        // Prompt results - handled by application
+        Action::ExecuteGotoLine(_) | Action::ExecuteSearch(_) | Action::ExecuteOpen(_) => {}
+
         Action::Noop => {}
     }
 }

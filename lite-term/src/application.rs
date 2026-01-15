@@ -6,10 +6,13 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use lite_config::{Action, Key, KeyEvent, Modifier};
+use lite_core::RopeExt;
 use lite_ui::{Compositor, Component, Context, EditorView, EventResult, HelpBar, StatusLine, TabLine};
 use lite_view::Editor;
 use ratatui::{backend::CrosstermBackend, layout::Rect, Terminal};
 use std::io::{self, Stdout};
+
+use lite_ui::{Prompt, PromptType};
 
 /// Main application struct
 pub struct Application {
@@ -161,13 +164,37 @@ impl Application {
         // Clear status message on any key
         self.editor.clear_status();
 
-        // First, let compositor handle it
+        // First, let compositor handle it (for prompts, etc.)
         {
             let mut ctx = Context::new(&mut self.editor);
             let result = self.compositor.handle_key(&key_event, &mut ctx);
             match result {
                 EventResult::Consumed => return Ok(()),
                 EventResult::Action(action) => {
+                    // Handle prompt submission actions
+                    match &action {
+                        Action::ExecuteGotoLine(line_str) => {
+                            self.compositor.pop(); // Remove the prompt
+                            self.handle_goto_line(line_str)?;
+                            return Ok(());
+                        }
+                        Action::ExecuteSearch(search_text) => {
+                            self.compositor.pop(); // Remove the prompt
+                            self.handle_search(search_text)?;
+                            return Ok(());
+                        }
+                        Action::ExecuteOpen(path) => {
+                            self.compositor.pop(); // Remove the prompt
+                            self.handle_open_file(path)?;
+                            return Ok(());
+                        }
+                        Action::Noop => {
+                            // Escape was pressed
+                            self.compositor.pop();
+                            return Ok(());
+                        }
+                        _ => {}
+                    }
                     execute_action(&mut self.editor, &action);
                     return Ok(());
                 }
@@ -185,9 +212,85 @@ impl Application {
 
         // Check keymap
         if let Some(action) = self.editor.keymap.get(&key_event).cloned() {
-            execute_action(&mut self.editor, &action);
+            // Handle actions that require prompts
+            match &action {
+                Action::GotoLine => {
+                    self.compositor.push(Box::new(Prompt::new(PromptType::GotoLine)));
+                }
+                Action::Find => {
+                    self.compositor.push(Box::new(Prompt::new(PromptType::Search)));
+                }
+                Action::Replace => {
+                    // TODO: Implement proper replace with two prompts
+                    self.compositor.push(Box::new(Prompt::new(PromptType::Search)));
+                }
+                Action::Open => {
+                    self.compositor.push(Box::new(Prompt::new(PromptType::Open)));
+                }
+                _ => {
+                    execute_action(&mut self.editor, &action);
+                }
+            }
         }
 
+        Ok(())
+    }
+
+    /// Handle goto line command
+    fn handle_goto_line(&mut self, line_str: &str) -> Result<()> {
+        if let Ok(line_num) = line_str.parse::<usize>() {
+            if line_num > 0 {
+                let view_id = self.editor.tree.focus();
+                let doc = self.editor.current_doc_mut();
+                let target_line = (line_num - 1).min(doc.len_lines().saturating_sub(1));
+                let char_pos = doc.rope.line_to_char(target_line);
+                doc.set_selection(view_id, lite_core::Selection::point(char_pos));
+
+                // Ensure cursor is visible
+                let pos = doc.rope.char_to_position(char_pos);
+                let scrolloff = self.editor.config.editor.scrolloff;
+                self.editor
+                    .current_view_mut()
+                    .ensure_cursor_visible(pos.line, pos.col, scrolloff);
+            }
+        }
+        Ok(())
+    }
+
+    /// Handle search command
+    fn handle_search(&mut self, search_text: &str) -> Result<()> {
+        if !search_text.is_empty() {
+            let view_id = self.editor.tree.focus();
+            let doc = self.editor.current_doc_mut();
+            let text: String = doc.rope.chars().collect();
+
+            if let Some(pos) = text.find(search_text) {
+                let end = pos + search_text.len();
+                let range = lite_core::Range::new(pos, end);
+                doc.set_selection(view_id, lite_core::Selection::single(range));
+
+                // Ensure selection is visible
+                let pos = doc.rope.char_to_position(pos);
+                let scrolloff = self.editor.config.editor.scrolloff;
+                self.editor
+                    .current_view_mut()
+                    .ensure_cursor_visible(pos.line, pos.col, scrolloff);
+
+                self.editor.set_status("Found", lite_view::Severity::Info);
+            } else {
+                self.editor.set_status("Not found", lite_view::Severity::Error);
+            }
+        }
+        Ok(())
+    }
+
+    /// Handle open file command
+    fn handle_open_file(&mut self, path: &str) -> Result<()> {
+        if !path.is_empty() {
+            if let Err(e) = self.editor.open(path) {
+                self.editor.set_status(format!("Error: {}", e), lite_view::Severity::Error);
+            }
+        }
         Ok(())
     }
 }
