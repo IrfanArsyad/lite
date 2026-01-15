@@ -126,6 +126,7 @@ impl Component for Prompt {
                     PromptType::GotoLine => Action::ExecuteGotoLine(self.input.clone()),
                     PromptType::Search => Action::ExecuteSearch(self.input.clone()),
                     PromptType::Open => Action::ExecuteOpen(self.input.clone()),
+                    PromptType::SaveAs => Action::ExecuteSaveAs(self.input.clone()),
                     _ => Action::Noop,
                 };
                 return EventResult::Action(action);

@@ -188,6 +188,11 @@ impl Application {
                             self.handle_open_file(path)?;
                             return Ok(());
                         }
+                        Action::ExecuteSaveAs(path) => {
+                            self.compositor.pop(); // Remove the prompt
+                            self.handle_save_as_file(path)?;
+                            return Ok(());
+                        }
                         Action::Noop => {
                             // Escape was pressed
                             self.compositor.pop();
@@ -226,6 +231,9 @@ impl Application {
                 }
                 Action::Open => {
                     self.compositor.push(Box::new(Prompt::new(PromptType::Open)));
+                }
+                Action::SaveAs => {
+                    self.compositor.push(Box::new(Prompt::new(PromptType::SaveAs)));
                 }
                 _ => {
                     execute_action(&mut self.editor, &action);
@@ -289,6 +297,16 @@ impl Application {
         if !path.is_empty() {
             if let Err(e) = self.editor.open(path) {
                 self.editor.set_status(format!("Error: {}", e), lite_view::Severity::Error);
+            }
+        }
+        Ok(())
+    }
+
+    /// Handle save as file command
+    fn handle_save_as_file(&mut self, path: &str) -> Result<()> {
+        if !path.is_empty() {
+            if let Err(e) = self.editor.save_as(path) {
+                self.editor.set_status(format!("Error saving: {}", e), lite_view::Severity::Error);
             }
         }
         Ok(())

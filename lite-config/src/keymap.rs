@@ -202,6 +202,7 @@ pub enum Action {
     ExecuteGotoLine(String),
     ExecuteSearch(String),
     ExecuteOpen(String),
+    ExecuteSaveAs(String),
 
     // Misc
     Noop,
