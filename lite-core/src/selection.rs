@@ -170,6 +170,11 @@ impl Selection {
         sel
     }
 
+    /// Create a selection from any list of ranges
+    pub fn from_ranges(ranges: impl IntoIterator<Item = Range>, primary_idx: usize) -> Self {
+        Self::new(ranges.into_iter().collect(), primary_idx)
+    }
+
     /// Get all ranges
     pub fn ranges(&self) -> &[Range] {
         &self.ranges
@@ -321,12 +326,8 @@ mod tests {
 
     #[test]
     fn test_selection_normalize() {
-        let mut sel = Selection::new(
-            smallvec::smallvec![
-                Range::new(10, 15),
-                Range::new(0, 5),
-                Range::new(3, 8),
-            ],
+        let sel = Selection::new(
+            smallvec::smallvec![Range::new(10, 15), Range::new(0, 5), Range::new(3, 8),],
             0,
         );
 

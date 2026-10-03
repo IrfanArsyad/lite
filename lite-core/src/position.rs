@@ -30,7 +30,7 @@ impl Position {
         }
         let line_start = rope.line_to_byte(self.line);
         let line_len = rope.line(self.line).len_bytes();
-        line_start + self.col.min(line_len.saturating_sub(1).max(0))
+        line_start + self.col.min(line_len.saturating_sub(1))
     }
 
     /// Convert Position to char offset
@@ -58,11 +58,13 @@ impl Position {
     pub fn clamp(&self, rope: &Rope) -> Self {
         let line = self.line.min(rope.len_lines().saturating_sub(1));
         let line_rope = rope.line(line);
-        let max_col = line_rope.len_bytes().saturating_sub(if line_ends_with_newline(line_rope) {
-            1
-        } else {
-            0
-        });
+        let max_col = line_rope
+            .len_bytes()
+            .saturating_sub(if line_ends_with_newline(line_rope) {
+                1
+            } else {
+                0
+            });
         Self {
             line,
             col: self.col.min(max_col),

@@ -6,12 +6,14 @@
 //! - `Transaction`: Atomic text operations with undo support
 //! - `Position`: Line/column position utilities
 
+mod display;
 mod grapheme;
 mod position;
 mod rope_ext;
 mod selection;
 mod transaction;
 
+pub use display::{char_col_at_display, char_display_width, display_col, CONTROL_REPLACEMENT};
 pub use grapheme::{grapheme_width, nth_next_grapheme, nth_prev_grapheme, RopeGraphemes};
 pub use position::Position;
 pub use ropey::{Rope, RopeSlice};

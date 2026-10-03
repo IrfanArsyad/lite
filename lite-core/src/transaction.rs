@@ -73,26 +73,38 @@ impl ChangeSet {
 
     /// Create a changeset from a single change
     pub fn from_change(doc_len: usize, change: &Change) -> Self {
+        Self::from_changes(doc_len, std::slice::from_ref(change))
+    }
+
+    /// Create a changeset from several changes.
+    ///
+    /// Changes must be sorted by `start` and must not overlap; positions refer
+    /// to the original document.
+    pub fn from_changes(doc_len: usize, changes: &[Change]) -> Self {
         let mut cs = Self::new(doc_len);
+        let mut last = 0;
 
-        // Retain up to start
-        if change.start > 0 {
-            cs.ops.push(Operation::Retain(change.start));
+        for change in changes {
+            debug_assert!(
+                change.start >= last,
+                "changes must be sorted and non-overlapping"
+            );
+            debug_assert!(change.start <= change.end && change.end <= doc_len);
+
+            if change.start > last {
+                cs.ops.push(Operation::Retain(change.start - last));
+            }
+            if change.end > change.start {
+                cs.ops.push(Operation::Delete(change.end - change.start));
+            }
+            if !change.insert.is_empty() {
+                cs.ops.push(Operation::Insert(change.insert.to_string()));
+            }
+            last = change.end;
         }
 
-        // Delete if needed
-        if change.end > change.start {
-            cs.ops.push(Operation::Delete(change.end - change.start));
-        }
-
-        // Insert if needed
-        if !change.insert.is_empty() {
-            cs.ops.push(Operation::Insert(change.insert.to_string()));
-        }
-
-        // Retain rest
-        if change.end < doc_len {
-            cs.ops.push(Operation::Retain(doc_len - change.end));
+        if last < doc_len {
+            cs.ops.push(Operation::Retain(doc_len - last));
         }
 
         cs
@@ -241,39 +253,35 @@ impl ChangeSet {
         Some(composed)
     }
 
-    /// Map a position through this changeset
-    pub fn map_pos(&self, mut pos: usize) -> usize {
+    /// Map a position in the original document to the matching position after
+    /// this changeset is applied. A position at an insertion point ends up after
+    /// the inserted text; a position inside a deleted range collapses to its start.
+    pub fn map_pos(&self, pos: usize) -> usize {
         let mut old_pos = 0;
         let mut new_pos = 0;
 
         for op in &self.ops {
-            if old_pos > pos {
-                break;
-            }
-
             match op {
                 Operation::Retain(n) => {
+                    if pos < old_pos + n {
+                        return new_pos + (pos - old_pos);
+                    }
                     old_pos += n;
                     new_pos += n;
                 }
-                Operation::Insert(s) => {
-                    let len = s.chars().count();
-                    if old_pos <= pos {
-                        new_pos += len;
-                    }
-                }
                 Operation::Delete(n) => {
-                    if old_pos + n <= pos {
-                        pos -= n;
-                    } else if old_pos < pos {
-                        pos = old_pos;
+                    if pos < old_pos + n {
+                        return new_pos;
                     }
                     old_pos += n;
+                }
+                Operation::Insert(s) => {
+                    new_pos += s.chars().count();
                 }
             }
         }
 
-        new_pos.min(pos)
+        new_pos + pos.saturating_sub(old_pos)
     }
 }
 
@@ -298,6 +306,11 @@ impl Transaction {
     /// Create a transaction from a single change
     pub fn change(doc_len: usize, change: Change) -> Self {
         Self::new(ChangeSet::from_change(doc_len, &change))
+    }
+
+    /// Create a transaction from several sorted, non-overlapping changes
+    pub fn changes(doc_len: usize, changes: &[Change]) -> Self {
+        Self::new(ChangeSet::from_changes(doc_len, changes))
     }
 
     /// Create an insert transaction
@@ -385,6 +398,41 @@ mod tests {
         let inverse = tx.invert(&original, &Selection::point(0));
         inverse.apply(&mut rope);
         assert_eq!(rope.to_string(), "hello world");
+    }
+
+    #[test]
+    fn test_map_pos() {
+        // "hello world" -> "hello big world"
+        let cs = ChangeSet::from_change(11, &Change::insert(6, "big "));
+        assert_eq!(cs.map_pos(0), 0);
+        assert_eq!(cs.map_pos(5), 5);
+        assert_eq!(cs.map_pos(6), 10);
+        assert_eq!(cs.map_pos(7), 11);
+        assert_eq!(cs.map_pos(11), 15);
+
+        // "hello world" -> "hello"
+        let cs = ChangeSet::from_change(11, &Change::delete(5, 11));
+        assert_eq!(cs.map_pos(3), 3);
+        assert_eq!(cs.map_pos(8), 5);
+        assert_eq!(cs.map_pos(11), 5);
+    }
+
+    #[test]
+    fn test_multiple_changes() {
+        let original = Rope::from("a b c");
+        let mut rope = original.clone();
+        let changes = [
+            Change::insert(0, "1"),
+            Change::replace(2, 3, "XY"),
+            Change::delete(4, 5),
+        ];
+        let tx = Transaction::changes(5, &changes);
+        tx.apply(&mut rope);
+        assert_eq!(rope.to_string(), "1a XY ");
+
+        let inverse = tx.invert(&original, &Selection::point(0));
+        inverse.apply(&mut rope);
+        assert_eq!(rope.to_string(), "a b c");
     }
 
     #[test]
