@@ -8,7 +8,7 @@ lite \- a lightweight, fast terminal text editor
 .B lite
 is a modern, lightweight terminal text editor inspired by nano and Sublime Text.
 It provides a familiar editing experience with powerful features like multi-cursor
-editing, split views, syntax highlighting, and LSP support.
+editing, split views, and tree-sitter syntax highlighting.
 .SH OPTIONS
 .TP
 .BR \-h ", " \-\-help
@@ -96,31 +96,21 @@ Find next
 Find previous
 .SS Splits
 .TP
-.B Ctrl+\\
+.B Alt+\e \fRor\fP Ctrl+\e
 Split vertical
 .TP
-.B Ctrl+Shift+\\
+.B Alt+- \fRor\fP Ctrl+Shift+\e
 Split horizontal
-.SS LSP
 .TP
-.B Ctrl+Space
-Autocomplete
+.B F6 \fR/\fP Shift+F6
+Focus next / previous split
 .TP
-.B F12
-Go to definition
-.TP
-.B Shift+F12
-Find references
-.TP
-.B F2
-Rename symbol
+.B Ctrl+Shift+W
+Close split
 .SH FILES
 .TP
 .I ~/.config/lite/config.toml
 User configuration file
-.TP
-.I ~/.config/lite/themes/
-Custom themes directory
 .SH ENVIRONMENT
 .TP
 .B LITE_LOG

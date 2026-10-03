@@ -1,376 +1,292 @@
 # lite
 
+Text editor terminal untuk kamu yang ingin `Ctrl+S` untuk menyimpan dan `Ctrl+F` untuk mencari.
+
+Tidak ada mode yang perlu dihafal. Buka file, langsung mengetik, dan shortcut yang paling sering dipakai tertulis di bagian bawah layar. Tombolnya mengikuti Sublime Text, jadi kalau kamu pernah memakainya, multi-cursor dengan `Ctrl+D` bekerja dengan cara yang sama.
+
 <p align="center">
-  <b>Text editor terminal yang ringan, cepat, dan modern</b>
+  <img src="docs/screenshot.svg" alt="lite mengedit file Rust: empat cursor hasil Ctrl+D, syntax highlighting, dan baris shortcut di bawah" width="806">
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/lisensi-MIT-blue.svg" alt="Lisensi">
-  <img src="https://img.shields.io/badge/platform-Linux-green.svg" alt="Platform">
-  <img src="https://img.shields.io/badge/rust-1.70+-orange.svg" alt="Rust">
+  <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="Lisensi MIT">
+  <img src="https://img.shields.io/badge/platform-Linux-green.svg" alt="Linux">
+  <img src="https://img.shields.io/badge/written%20in-Rust-orange.svg" alt="Ditulis dengan Rust">
 </p>
 
 <p align="center">
-  <a href="README.md">English</a> •
-  <a href="README.id.md">Bahasa Indonesia</a>
+  <a href="README.md">English</a> · <b>Bahasa Indonesia</b>
 </p>
 
 ---
 
-## Fitur
+## Daftar isi
 
-- **Keybinding ala Sublime Text** (Ctrl+P, Ctrl+D, Ctrl+Shift+K, dll)
-- **Multi-cursor** editing
-- **Split view** (horizontal & vertikal)
-- **Tab** untuk multiple buffer
-- **Syntax highlighting** (berbasis tree-sitter)
-- **LSP support** untuk autocomplete
-- **Integrasi Git**
-- Ringan dan cepat
+- [Yang kamu dapat](#yang-kamu-dapat)
+- [Instalasi](#instalasi)
+- [Cara pakai](#cara-pakai)
+- [Shortcut keyboard](#shortcut-keyboard)
+- [Konfigurasi](#konfigurasi)
+- [Shell completion](#shell-completion)
+- [Keterbatasan saat ini](#keterbatasan-saat-ini)
+- [Troubleshooting](#troubleshooting)
+- [Uninstall](#uninstall)
+- [Development](#development)
 
----
+## Yang kamu dapat
+
+- Simpan, buka, cari, ganti, undo, dan keluar memakai tombol yang sama dengan editor desktop. Baris di bawah layar menampilkan shortcut-shortcut itu, dan isinya dibaca dari key binding yang aktif, jadi tidak pernah menampilkan shortcut yang tidak berfungsi.
+- `Ctrl+D` memilih kata di bawah cursor, lalu menambahkan setiap kemunculan berikutnya sebagai cursor baru; `Alt+Shift+↑/↓` menambah cursor di baris atas atau bawah. Mengetik, menghapus, dan paste terjadi di semua cursor sekaligus.
+- Setiap file terbuka di tab sendiri. Jendela bisa di-split kiri-kanan atau atas-bawah, dan tiap bagian bisa menampilkan file yang berbeda.
+- Rust, Python, JavaScript, TypeScript, Go, C, C++, JSON, Bash, HTML, CSS, dan Markdown mendapat syntax highlighting lewat tree-sitter. File lain dibuka sebagai teks biasa.
+- Saat menyimpan, isi file ditulis ke file sementara dulu lalu ditukar, jadi kalau terjadi crash tidak akan ada file yang setengah tertulis. Permission dan symlink tetap terjaga. Keluar atau menutup tab yang belum disimpan meminta kamu menekan tombolnya sekali lagi.
+- Satu kali `Ctrl+Z` membatalkan satu kata yang baru diketik, bukan satu huruf.
+- Huruf beraksen, karakter CJK, emoji, dan tab bisa digeser, dipilih, dan tampil rata dengan benar.
 
 ## Instalasi
 
-### Metode 1: Quick Install (Direkomendasikan)
+lite berjalan di Linux. Untuk build dibutuhkan `git`, compiler C (untuk grammar tree-sitter), dan Rust. Script instalasi cepat akan memasang Rust kalau belum ada.
 
-Jalankan satu perintah ini di terminal:
+### Instalasi cepat
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/irfan/lite/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/IrfanArsyad/lite/main/scripts/install.sh | bash
 ```
 
-Script ini akan otomatis:
-- Mendeteksi sistem Anda
-- Menginstall Rust jika belum ada
-- Build dan install lite
+Script ini memakai binary siap pakai kalau sudah ada release untuk platform kamu, dan build dari source kalau belum. `lite` disalin ke `/usr/local/bin` beserta man page dan shell completion, jadi script akan meminta `sudo`.
 
----
-
-### Metode 2: Install dari Source
-
-#### Prasyarat
-
-Install Rust terlebih dahulu:
+### Dari source
 
 ```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-source ~/.cargo/env
-```
-
-#### Build & Install
-
-```bash
-# Clone repository
 git clone https://github.com/IrfanArsyad/lite.git
 cd lite
-
-# Build dan install
 make install
 ```
 
-Atau tanpa Makefile:
+Tanpa `make`:
 
 ```bash
 cargo build --release
 sudo cp target/release/lite /usr/local/bin/
 ```
 
----
-
-### Metode 3: Install via Cargo
+### Lewat Cargo
 
 ```bash
 cargo install --git https://github.com/IrfanArsyad/lite.git lite-term
 ```
 
----
+Binary `lite` akan terpasang di `~/.cargo/bin`.
 
-### Metode 4: Package .deb (Debian/Ubuntu)
-
-#### Download dari Releases
+### Sebagai paket .deb
 
 ```bash
-# Download package terbaru
-wget https://github.com/IrfanArsyad/lite/releases/latest/download/lite_0.1.0_amd64.deb
-
-# Install
-sudo dpkg -i lite_0.1.0_amd64.deb
-
-# Atau dengan apt (mengatasi dependency)
-sudo apt install ./lite_0.1.0_amd64.deb
-```
-
-#### Build Package Sendiri
-
-```bash
-# Install cargo-deb
-cargo install cargo-deb
-
-# Clone dan build
 git clone https://github.com/IrfanArsyad/lite.git
 cd lite
-make deb
-
-# Install package yang dihasilkan
-sudo dpkg -i target/debian/lite_*.deb
+make deb                                  # memasang cargo-deb kalau belum ada
+sudo apt install ./target/debian/lite_*.deb
 ```
 
----
-
-### Metode 5: Arch Linux (AUR)
+Cek hasilnya:
 
 ```bash
-# Menggunakan yay
-yay -S lite-editor
-
-# Atau paru
-paru -S lite-editor
-```
-
----
-
-### Metode 6: Fedora/RHEL (.rpm)
-
-```bash
-# Build package .rpm
-cargo install cargo-rpm
-make rpm
-
-# Install
-sudo rpm -i target/rpm/lite-*.rpm
-```
-
----
-
-## Verifikasi Instalasi
-
-```bash
-# Cek versi
 lite --version
-
-# Buka file
-lite myfile.txt
-
-# Lihat bantuan
-lite --help
 ```
 
----
-
-## Uninstall
-
-### Jika install via make/manual:
+## Cara pakai
 
 ```bash
-make uninstall
+lite                  # mulai dengan buffer kosong
+lite catatan.md       # buka file; file yang belum ada akan dibuat saat pertama disimpan
+lite src/*.rs         # buka beberapa file, satu tab per file
+lite --update         # update ke release terbaru
+lite --help           # daftar opsi dan lokasi file config
 ```
 
-Atau jalankan script:
+Di dalam editor, tekan `Ctrl+S` untuk menyimpan dan `Ctrl+Q` untuk keluar. Menyimpan buffer yang belum punya nama akan menanyakan nama file.
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/irfan/lite/main/scripts/uninstall.sh | bash
-```
+## Shortcut keyboard
 
-### Jika install via dpkg:
+Kalau satu baris berisi dua tombol yang dipisah "atau", keduanya sama-sama bisa dipakai.
 
-```bash
-sudo dpkg -r lite
-# atau
-sudo apt remove lite
-```
+`Ctrl+Shift` plus huruf (misalnya `Ctrl+Shift+S`), `Ctrl+Tab`, `Ctrl+Enter`, dan `Ctrl+/` hanya berfungsi di terminal yang mengirimnya sebagai tombol terpisah lewat kitty keyboard protocol. lite menyalakan protokol ini sendiri di kitty, foot, Ghostty, Alacritty 0.13 ke atas, dan WezTerm dengan `enable_kitty_keyboard = true`. Kebanyakan terminal lain, dan apa pun yang berjalan di dalam tmux, mengirim `Ctrl+Shift+S` sebagai `Ctrl+S` biasa; di sana pakai alternatif yang ada di tabel, misalnya `Ctrl+Y` untuk redo. `Ctrl+Shift` dengan tombol panah berfungsi di semua terminal.
 
-### Jika install via cargo:
+### File
 
-```bash
-cargo uninstall lite-term
-```
-
----
-
-## Penggunaan
-
-```bash
-# Buka file baru
-lite
-
-# Buka file yang ada
-lite namafile.txt
-
-# Buka beberapa file
-lite file1.rs file2.rs file3.rs
-```
-
----
-
-## Keybindings
-
-### Operasi File
 | Shortcut | Aksi |
 |----------|------|
 | `Ctrl+S` | Simpan |
-| `Ctrl+Shift+S` | Simpan Sebagai |
-| `Ctrl+O` | Buka File |
-| `Ctrl+P` | Buka Cepat |
-| `Ctrl+W` | Tutup Buffer |
+| `Ctrl+Shift+S` | Simpan sebagai |
+| `Ctrl+O` | Buka file |
+| `Ctrl+W` | Tutup tab |
 | `Ctrl+Q` | Keluar |
 
-### Editing
+### Mengedit
+
 | Shortcut | Aksi |
 |----------|------|
 | `Ctrl+Z` | Undo |
-| `Ctrl+Shift+Z` | Redo |
-| `Ctrl+D` | Pilih Kata / Kemunculan Berikutnya |
-| `Ctrl+Shift+D` | Duplikat Baris |
-| `Ctrl+Shift+K` | Hapus Baris |
-| `Ctrl+/` | Toggle Komentar |
-| `Ctrl+Shift+↑/↓` | Pindah Baris Atas/Bawah |
+| `Ctrl+Y` atau `Ctrl+Shift+Z` | Redo |
+| `Ctrl+C` / `Ctrl+X` / `Ctrl+V` | Copy / cut / paste (satu baris penuh kalau tidak ada yang dipilih) |
+| `Ctrl+Shift+K` | Hapus baris |
+| `Ctrl+Shift+D` | Duplikat baris |
+| `Ctrl+Shift+↑` / `Ctrl+Shift+↓` | Pindahkan baris ke atas / bawah |
+| `Tab` / `Shift+Tab` | Indent / unindent (baris yang dipilih, atau sisipkan indent di cursor) |
+| `Ctrl+/` | Toggle komentar, sesuai gaya komentar bahasa file tersebut |
+| `Ctrl+Enter` / `Ctrl+Shift+Enter` | Baris baru di bawah / di atas |
 
-### Multi-cursor
+### Seleksi dan multi-cursor
+
 | Shortcut | Aksi |
 |----------|------|
-| `Alt+Shift+↑` | Tambah Cursor di Atas |
-| `Alt+Shift+↓` | Tambah Cursor di Bawah |
-| `Ctrl+Shift+L` | Pisah Seleksi ke Baris |
-| `Esc` | Cursor Tunggal |
+| `Ctrl+A` | Pilih semua |
+| `Ctrl+L` | Pilih baris |
+| `Ctrl+D` | Pilih kata, lalu tambahkan kemunculan berikutnya |
+| `Ctrl+Shift+A` | Pilih semua kemunculan |
+| `Ctrl+Shift+L` | Pecah seleksi jadi satu cursor per baris |
+| `Alt+Shift+↑` / `Alt+Shift+↓` | Tambah cursor di atas / bawah |
+| `Esc` | Kembali ke satu cursor |
 
 ### Navigasi
+
 | Shortcut | Aksi |
 |----------|------|
-| `Ctrl+G` | Pergi ke Baris |
-| `Ctrl+Home` | Pergi ke Awal |
-| `Ctrl+End` | Pergi ke Akhir |
-| `Ctrl+←/→` | Pindah per Kata |
+| `Ctrl+←` / `Ctrl+→` | Kata sebelumnya / berikutnya |
+| `Home` / `End` | Awal / akhir baris |
+| `Ctrl+Home` / `Ctrl+End` | Awal / akhir file |
+| `PageUp` / `PageDown` | Naik / turun satu layar |
+| `Ctrl+G` | Pergi ke baris (`42`, atau `42:7` untuk baris dan kolom) |
 
 ### Pencarian
+
 | Shortcut | Aksi |
 |----------|------|
 | `Ctrl+F` | Cari |
-| `Ctrl+H` | Ganti |
-| `F3` | Cari Berikutnya |
-| `Shift+F3` | Cari Sebelumnya |
+| `F3` / `Shift+F3` | Hasil berikutnya / sebelumnya |
+| `Ctrl+E` | Cari teks yang sedang dipilih |
+| `Ctrl+H` | Ganti semua kemunculan di file |
 
-### Split & Tab
+### Tab dan split
+
 | Shortcut | Aksi |
 |----------|------|
-| `Ctrl+\` | Split Vertikal |
-| `Ctrl+Shift+\` | Split Horizontal |
-| `Ctrl+Tab` | Tab Berikutnya |
-| `Ctrl+1-9` | Pindah ke Tab N |
+| `Ctrl+PageDown` atau `Ctrl+Tab` | Tab berikutnya |
+| `Ctrl+PageUp` atau `Ctrl+Shift+Tab` | Tab sebelumnya |
+| `Alt+1` … `Alt+9` atau `Ctrl+1` … `Ctrl+9` | Pindah ke tab 1 sampai 9 |
+| `Alt+\` atau `Ctrl+\` | Split kiri-kanan |
+| `Alt+-` atau `Ctrl+Shift+\` | Split atas-bawah |
+| `F6` / `Shift+F6` | Pindah ke split berikutnya / sebelumnya |
+| `Ctrl+Shift+W` | Tutup split yang aktif |
 
----
+Kebanyakan terminal tidak meneruskan `Ctrl+Tab`, `Ctrl+1` … `Ctrl+9`, atau `Ctrl+\` ke program yang berjalan di dalamnya. Shortcut `Alt`, `F6`, dan `Ctrl+PageUp`/`Ctrl+PageDown` berfungsi di semua terminal.
+
+### Mouse
+
+Klik untuk memindahkan cursor atau berpindah split, dan scroll dengan roda mouse. Matikan dengan `mouse = false` kalau kamu lebih suka seleksi teks bawaan terminal.
 
 ## Konfigurasi
 
-Lokasi file konfigurasi: `~/.config/lite/config.toml`
+lite membaca `~/.config/lite/config.toml` (jalankan `lite --help` untuk melihat lokasi pastinya di sistem kamu). File ini opsional, begitu juga setiap pengaturan di dalamnya.
 
 ```toml
 [editor]
-tab_width = 4
-indent_style = "spaces"
-line_numbers = true
-mouse = true
-scrolloff = 5
-auto_save = false
-
-[theme]
-name = "default"
+tab_width = 4            # lebar tab, sekaligus satu level indentasi
+indent_style = "spaces"  # "spaces" atau "tabs"
+mouse = true             # klik untuk memindah cursor, roda mouse untuk scroll
+scrolloff = 5            # jumlah baris yang tetap terlihat di atas dan bawah cursor
 ```
 
----
+Kalau ada kesalahan di file ini, lite tetap berjalan dengan pengaturan default dan menampilkan pesan error-nya di status line.
+
+## Shell completion
+
+Completion untuk bash, zsh, dan fish dipasang oleh `make install` dan oleh script instalasi cepat. Completion ini melengkapi nama file serta opsi `--help`, `--version`, dan `--update`.
+
+Untuk zsh, file-nya dipasang ke `/usr/share/zsh/vendor-completions` di Debian dan Ubuntu, dan ke `/usr/share/zsh/site-functions` di distro lain; keduanya sudah dibaca zsh secara default. Kalau kamu mengatur completion sendiri (misalnya dengan oh-my-zsh), salin `completions/_lite` ke salah satu folder di `fpath`, lalu jalankan:
+
+```zsh
+rm -f ~/.zcompdump; compinit
+```
+
+## Keterbatasan saat ini
+
+lite masih di versi 0.1.0. Ini yang belum ada:
+
+- Belum bisa memilih teks dengan `Shift` + tombol panah. Pakai `Ctrl+L`, `Ctrl+D`, atau mouse.
+- Dukungan language server (autocomplete, go to definition), penanda Git, quick open, dan command palette masih direncanakan. Shortcut-nya menampilkan pesan "not available yet" di status line.
+- Hanya file UTF-8 yang bisa dibuka. File binary ditolak supaya tidak rusak.
+- Di terminal tanpa kitty keyboard protocol, `Ctrl+Shift` plus huruf terbaca sebagai `Ctrl` biasa (lihat [Shortcut keyboard](#shortcut-keyboard)), dan `Ctrl+/` terbaca sebagai `Ctrl+7`, sehingga pindah ke tab 7, bukan toggle komentar.
+- Baru diuji di Linux.
 
 ## Troubleshooting
 
-### Error: "cargo: command not found"
+**`lite: command not found` setelah instalasi.** `/usr/local/bin` belum ada di `PATH`. Tambahkan ke file startup shell kamu:
 
-Install Rust:
+```bash
+# zsh
+echo 'export PATH="/usr/local/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
+
+# bash
+echo 'export PATH="/usr/local/bin:$PATH"' >> ~/.bashrc && source ~/.bashrc
+```
+
+Kalau kamu install lewat Cargo, binary-nya ada di `~/.cargo/bin`; `source ~/.cargo/env` menambahkannya untuk shell yang sedang terbuka.
+
+**`cargo: command not found` saat build.** Pasang Rust dengan rustup, lalu buka terminal baru:
+
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-source ~/.cargo/env
 ```
 
-### Error: "permission denied"
+**`linker 'cc' not found` atau error build tree-sitter.** Grammar-nya ditulis dalam C. Di Debian dan Ubuntu, `sudo apt install build-essential`; di Fedora, `sudo dnf install gcc`; di Arch, `sudo pacman -S base-devel`.
 
-Gunakan sudo untuk install ke /usr/local/bin:
-```bash
-sudo make install
-```
+**Shortcut tidak bereaksi.** Terminal, tmux, atau desktop kamu mungkin menangkap tombol itu sebelum sampai ke lite. Coba alternatifnya di [Tab dan split](#tab-dan-split), atau hapus binding yang bentrok di pengaturan terminal.
 
-### Error saat build
+## Uninstall
 
-Update Rust ke versi terbaru:
-```bash
-rustup update
-```
+| Dipasang dengan | Hapus dengan |
+|-----------------|--------------|
+| `make install` | `make uninstall` (dari folder repository) |
+| Script instalasi cepat | `curl -fsSL https://raw.githubusercontent.com/IrfanArsyad/lite/main/scripts/uninstall.sh \| bash` |
+| Cargo | `cargo uninstall lite-term` |
+| Paket .deb | `sudo apt remove lite` |
 
-### lite tidak ditemukan setelah install
+File config di `~/.config/lite` tidak ikut dihapus; hapus manual kalau sudah tidak dipakai.
 
-Pastikan `/usr/local/bin` ada di PATH:
-```bash
-echo 'export PATH="/usr/local/bin:$PATH"' >> ~/.bashrc
-source ~/.bashrc
-```
-
----
-
-## Build dari Source (Development)
+## Development
 
 ```bash
-# Clone
 git clone https://github.com/IrfanArsyad/lite.git
 cd lite
-
-# Build debug
-make build
-
-# Build release
-make release
-
-# Jalankan test
-make test
-
-# Jalankan linter
-make lint
-
-# Format kode
-make fmt
+make build     # debug build
+make run       # build lalu jalankan lite
+make test      # jalankan test
+make lint      # clippy
+make fmt       # rustfmt
 ```
 
----
-
-## Struktur Project
+Kodenya berupa Cargo workspace:
 
 ```
 lite/
-├── lite-core/      # Primitif teks inti
-├── lite-view/      # State editor & view
-├── lite-ui/        # Widget UI (ratatui)
-├── lite-term/      # Aplikasi utama
-├── lite-config/    # Konfigurasi
-├── lite-lsp/       # LSP client
-└── lite-git/       # Integrasi Git
+├── lite-core/     primitif teks: helper rope, seleksi, transaksi, lebar tampilan
+├── lite-view/     state editor: dokumen, riwayat undo, view, layout split, syntax tree
+├── lite-ui/       widget ratatui: editor, tab line, status line, help bar, prompt
+├── lite-term/     binary lite: event loop, penanganan tombol, perintah edit
+├── lite-config/   pengaturan, key binding, tema
+├── lite-lsp/      placeholder untuk dukungan language server
+└── lite-git/      placeholder untuk integrasi Git
 ```
 
----
+### Kontribusi
 
-## Kontribusi
+Laporan bug dan pull request sangat diterima.
 
-1. Fork repository
-2. Buat branch (`git checkout -b fitur/fitur-baru`)
-3. Commit perubahan (`git commit -m 'Tambah fitur baru'`)
-4. Push ke branch (`git push origin fitur/fitur-baru`)
-5. Buat Pull Request
-
----
+1. Fork repository ini dan buat branch (`git checkout -b fix/deskripsi-singkat`).
+2. Buat perubahan dan tambahkan test-nya.
+3. Jalankan `make test` dan `make lint` sebelum push.
+4. Buka pull request yang menjelaskan apa yang berubah dan alasannya.
 
 ## Lisensi
 
-MIT License - lihat [LICENSE](LICENSE)
-
----
-
-## Penghargaan
-
-Terinspirasi dari [nano](https://www.nano-editor.org/), [Sublime Text](https://www.sublimetext.com/), dan [Helix](https://helix-editor.com/)
-
-Dibangun dengan [Rust](https://www.rust-lang.org/), [ratatui](https://ratatui.rs/), dan [ropey](https://github.com/cessen/ropey)
+MIT. Lihat [LICENSE](LICENSE).

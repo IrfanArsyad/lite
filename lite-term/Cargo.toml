@@ -20,15 +20,14 @@ maintainer = "Irfan <irfan@example.com>"
 copyright = "2025, Irfan"
 license-file = ["../LICENSE", "0"]
 extended-description = """
-lite is a lightweight, fast, and modern terminal text editor.
+lite is a terminal text editor with the shortcuts of desktop editors:
+Ctrl+S saves, Ctrl+F finds, and the keys you need are listed at the
+bottom of the screen.
 Features:
-- Sublime-style keybindings (Ctrl+P, Ctrl+D, Ctrl+Shift+K, etc.)
+- Sublime Text style keybindings (Ctrl+D, Ctrl+Shift+K, ...)
 - Multi-cursor editing
-- Split views and tabs
-- Syntax highlighting (tree-sitter)
-- LSP support for autocompletion
-- Git integration
-- Efficient and low memory usage
+- Tabs and split views
+- Syntax highlighting with tree-sitter
 """
 section = "editors"
 priority = "optional"
