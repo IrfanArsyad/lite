@@ -1,5 +1,72 @@
 use crate::{Component, Context};
+use lite_config::{Action, KeyEvent, Keymap};
 use ratatui::prelude::*;
+use ratatui::widgets::Paragraph;
+use unicode_width::UnicodeWidthStr;
+
+/// A shortcut shown in the help bar
+struct Shortcut {
+    action: Action,
+    label: &'static str,
+    /// Lower numbers stay visible longest when the terminal is narrow
+    priority: u8,
+}
+
+/// Shortcuts in display order
+fn shortcuts() -> [Shortcut; 9] {
+    [
+        Shortcut {
+            action: Action::Save,
+            label: "Save",
+            priority: 0,
+        },
+        Shortcut {
+            action: Action::Open,
+            label: "Open",
+            priority: 1,
+        },
+        Shortcut {
+            action: Action::CloseBuffer,
+            label: "Close",
+            priority: 3,
+        },
+        Shortcut {
+            action: Action::Find,
+            label: "Find",
+            priority: 1,
+        },
+        Shortcut {
+            action: Action::Replace,
+            label: "Replace",
+            priority: 4,
+        },
+        Shortcut {
+            action: Action::GotoLine,
+            label: "Go to line",
+            priority: 3,
+        },
+        Shortcut {
+            action: Action::Undo,
+            label: "Undo",
+            priority: 2,
+        },
+        Shortcut {
+            action: Action::Redo,
+            label: "Redo",
+            priority: 5,
+        },
+        Shortcut {
+            action: Action::Quit,
+            label: "Quit",
+            priority: 0,
+        },
+    ]
+}
+
+/// Space between one shortcut's label and the next key chip
+const ITEM_GAP: usize = 3;
+/// Blank column before the first chip
+const LEFT_MARGIN: usize = 1;
 
 /// Help bar showing keyboard shortcuts at the bottom (nano-style)
 pub struct HelpBar;
@@ -7,6 +74,57 @@ pub struct HelpBar;
 impl HelpBar {
     pub fn new() -> Self {
         Self
+    }
+
+    /// Compact nano-style key name: `^S`, `M-x`, `^S-z`
+    fn key_label(key: &KeyEvent) -> String {
+        let full = key.to_string();
+        full.replace("Ctrl+", "^")
+            .replace("Alt+", "M-")
+            .replace("Shift+", "S-")
+    }
+
+    /// Shortcuts that are bound in `keymap` and fit in `width`, in display order
+    fn visible_items(keymap: &Keymap, width: usize) -> Vec<(String, &'static str)> {
+        let mut items: Vec<(usize, u8, String, &'static str)> = shortcuts()
+            .into_iter()
+            .enumerate()
+            .filter_map(|(order, s)| {
+                keymap
+                    .key_for(&s.action)
+                    .map(|key| (order, s.priority, Self::key_label(key), s.label))
+            })
+            .collect();
+
+        // Drop the least important shortcut until the rest fit.
+        while Self::total_width(&items) > width && !items.is_empty() {
+            let drop_idx = items
+                .iter()
+                .enumerate()
+                .max_by_key(|(idx, item)| (item.1, *idx))
+                .map(|(idx, _)| idx)
+                .expect("items is not empty");
+            items.remove(drop_idx);
+        }
+
+        items.sort_by_key(|item| item.0);
+        items
+            .into_iter()
+            .map(|(_, _, key, label)| (key, label))
+            .collect()
+    }
+
+    fn item_width(key: &str, label: &str) -> usize {
+        // " key " chip, a space, then the label
+        key.width() + 2 + 1 + label.width()
+    }
+
+    fn total_width(items: &[(usize, u8, String, &'static str)]) -> usize {
+        let content: usize = items
+            .iter()
+            .map(|(_, _, key, label)| Self::item_width(key, label))
+            .sum();
+        LEFT_MARGIN + content + ITEM_GAP * items.len().saturating_sub(1)
     }
 }
 
@@ -17,85 +135,48 @@ impl Default for HelpBar {
 }
 
 impl Component for HelpBar {
-    fn render(&self, frame: &mut Frame, area: Rect, _ctx: &Context) {
-        let bg_style = Style::default().bg(Color::Rgb(64, 64, 64)).fg(Color::Rgb(220, 220, 220));
-        let key_style = Style::default().fg(Color::Rgb(255, 255, 255)).bold();
+    fn render(&self, frame: &mut Frame, area: Rect, ctx: &Context) {
+        let theme = &ctx.editor.theme;
+        let bar_style = theme.helpbar.to_ratatui();
+        let key_style = theme.helpbar_key.to_ratatui();
 
-        // All shortcuts organized by category
-        let shortcuts: Vec<(&str, &str)> = vec![
-            ("^S", "Save"),
-            ("^O", "Open"),
-            ("^W", "Close"),
-            ("^Q", "Quit"),
-            ("^F", "Find"),
-            ("^H", "Replace"),
-            ("^G", "GoTo"),
-            ("^Z", "Undo"),
-            ("^Y", "Redo"),
-            ("^D", "SelNext"),
-        ];
-
-        // Calculate spacing for better distribution
-        let width = area.width as usize;
-        let items_per_row = if area.height >= 2 { 5 } else { 4 };
-
-        // Render based on available height
-        if area.height >= 2 {
-            // Two rows - show all shortcuts
-            let row1_items: Vec<(&str, &str)> = shortcuts.iter().take(items_per_row).copied().collect();
-            let row2_items: Vec<(&str, &str)> = shortcuts.iter().skip(items_per_row).copied().collect();
-
-            let row1_area = Rect { height: 1, ..area };
-            let row2_area = Rect { y: area.y + 1, height: 1, ..area };
-
-            let row1_line = Self::build_line(&row1_items, width, bg_style, key_style);
-            let row2_line = Self::build_line(&row2_items, width, bg_style, key_style);
-
-            frame.render_widget(
-                ratatui::widgets::Paragraph::new(row1_line).style(bg_style),
-                row1_area,
-            );
-            frame.render_widget(
-                ratatui::widgets::Paragraph::new(row2_line).style(bg_style),
-                row2_area,
-            );
-        } else if area.height == 1 {
-            // Single row - show most important shortcuts
-            let items: Vec<(&str, &str)> = shortcuts.iter().take(4).copied().collect();
-            let line = Self::build_line(&items, width, bg_style, key_style);
-            frame.render_widget(
-                ratatui::widgets::Paragraph::new(line).style(bg_style),
-                area,
-            );
+        let mut spans = vec![Span::styled(" ".repeat(LEFT_MARGIN), bar_style)];
+        let items = Self::visible_items(&ctx.editor.keymap, area.width as usize);
+        for (i, (key, label)) in items.into_iter().enumerate() {
+            if i > 0 {
+                spans.push(Span::styled(" ".repeat(ITEM_GAP), bar_style));
+            }
+            spans.push(Span::styled(format!(" {key} "), key_style));
+            spans.push(Span::styled(format!(" {label}"), bar_style));
         }
+
+        frame.render_widget(Paragraph::new(Line::from(spans)).style(bar_style), area);
     }
 }
 
-impl HelpBar {
-    /// Build a line of shortcuts with consistent spacing
-    fn build_line(items: &[(&str, &str)], width: usize, bg_style: Style, key_style: Style) -> Line<'static> {
-        let mut spans = Vec::new();
-        let item_width = width / items.len();
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-        for (i, (key, desc)) in items.iter().enumerate() {
-            // Add key with highlighting
-            spans.push(Span::styled(format!("{}", key), key_style));
+    #[test]
+    fn test_labels_come_from_keymap() {
+        let items = HelpBar::visible_items(&Keymap::default(), 200);
+        assert_eq!(items.first(), Some(&("^S".to_string(), "Save")));
+        assert_eq!(items.len(), shortcuts().len());
+    }
 
-            // Add description with padding
-            let desc_str = format!(" {}", desc);
-            let remaining = if i < items.len() - 1 {
-                item_width.saturating_sub(key.len() + desc_str.len())
-            } else {
-                0 // Last item doesn't need padding
-            };
+    #[test]
+    fn test_narrow_terminal_keeps_most_important() {
+        let items = HelpBar::visible_items(&Keymap::default(), 30);
+        let labels: Vec<_> = items.iter().map(|(_, label)| *label).collect();
+        assert_eq!(labels, ["Save", "Quit"]);
+    }
 
-            spans.push(Span::styled(desc_str, bg_style));
-
-            if remaining > 0 && i < items.len() - 1 {
-                spans.push(Span::styled(" ".repeat(remaining), bg_style));
-            }
-        }
-
-        Line::from(spans)
+    #[test]
+    fn test_unbound_action_is_hidden() {
+        let mut keymap = Keymap::default();
+        keymap.insert(KeyEvent::ctrl('h'), Action::Noop);
+        let items = HelpBar::visible_items(&keymap, 200);
+        assert!(items.iter().all(|(_, label)| *label != "Replace"));
     }
 }
