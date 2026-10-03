@@ -7,7 +7,7 @@ _lite() {
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
     # Options
-    opts="-h --help -V --version"
+    opts="-h --help -v --version -u --update"
 
     case "${prev}" in
         lite)

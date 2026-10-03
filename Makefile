@@ -8,7 +8,8 @@ INSTALL_DIR := /usr/local/bin
 MAN_DIR := /usr/local/share/man/man1
 COMPLETIONS_DIR_BASH := /etc/bash_completion.d
 COMPLETIONS_DIR_FISH := /usr/share/fish/vendor_completions.d
-COMPLETIONS_DIR_ZSH := /usr/share/zsh/vendor-completions
+# Debian/Ubuntu read vendor-completions; other distros read site-functions
+COMPLETIONS_DIR_ZSH := $(shell [ -d /usr/share/zsh/vendor-completions ] && echo /usr/share/zsh/vendor-completions || echo /usr/share/zsh/site-functions)
 BINARY := lite
 TARGET := target/release/$(BINARY)
 

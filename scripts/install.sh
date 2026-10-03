@@ -124,9 +124,12 @@ build_from_source() {
             sudo cp completions/lite.fish /usr/share/fish/vendor_completions.d/
         fi
 
-        # Zsh
+        # Zsh: Debian/Ubuntu read vendor-completions, other distros site-functions
         if [ -d /usr/share/zsh/vendor-completions ]; then
             sudo cp completions/_lite /usr/share/zsh/vendor-completions/
+        elif command -v zsh &> /dev/null; then
+            sudo mkdir -p /usr/share/zsh/site-functions
+            sudo cp completions/_lite /usr/share/zsh/site-functions/
         fi
     fi
 

@@ -46,6 +46,7 @@ sudo rm -f /etc/bash_completion.d/lite 2>/dev/null || true
 sudo rm -f /usr/share/bash-completion/completions/lite 2>/dev/null || true
 sudo rm -f /usr/share/fish/vendor_completions.d/lite.fish 2>/dev/null || true
 sudo rm -f /usr/share/zsh/vendor-completions/_lite 2>/dev/null || true
+sudo rm -f /usr/share/zsh/site-functions/_lite 2>/dev/null || true
 
 # Remove config (optional)
 CONFIG_DIR="$HOME/.config/lite"
