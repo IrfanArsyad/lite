@@ -42,9 +42,7 @@ impl Node {
     pub fn views(&self) -> Vec<ViewId> {
         match self {
             Node::Leaf(id) => vec![*id],
-            Node::Container { children, .. } => {
-                children.iter().flat_map(|c| c.views()).collect()
-            }
+            Node::Container { children, .. } => children.iter().flat_map(|c| c.views()).collect(),
         }
     }
 
@@ -52,9 +50,7 @@ impl Node {
     pub fn contains(&self, view_id: ViewId) -> bool {
         match self {
             Node::Leaf(id) => *id == view_id,
-            Node::Container { children, .. } => {
-                children.iter().any(|c| c.contains(view_id))
-            }
+            Node::Container { children, .. } => children.iter().any(|c| c.contains(view_id)),
         }
     }
 
@@ -62,11 +58,15 @@ impl Node {
     pub fn find_sibling(&self, view_id: ViewId, direction: Direction) -> Option<ViewId> {
         match self {
             Node::Leaf(_) => None,
-            Node::Container { layout: _, children, .. } => {
+            Node::Container {
+                layout: _,
+                children,
+                ..
+            } => {
                 // Check if view_id is a direct child
-                let idx = children.iter().position(|c| {
-                    matches!(c, Node::Leaf(id) if *id == view_id)
-                });
+                let idx = children
+                    .iter()
+                    .position(|c| matches!(c, Node::Leaf(id) if *id == view_id));
 
                 if let Some(idx) = idx {
                     // Found it, look for sibling
@@ -109,6 +109,88 @@ pub enum Direction {
     Down,
 }
 
+/// A rectangle in terminal cells
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct Area {
+    pub x: u16,
+    pub y: u16,
+    pub width: u16,
+    pub height: u16,
+}
+
+impl Area {
+    pub const fn new(x: u16, y: u16, width: u16, height: u16) -> Self {
+        Self {
+            x,
+            y,
+            width,
+            height,
+        }
+    }
+}
+
+/// Screen placement of every view plus the dividers between them
+#[derive(Debug, Default)]
+pub struct LayoutResult {
+    pub views: Vec<(ViewId, Area)>,
+    /// Divider cells; the layout tells whether it is a vertical or horizontal line
+    pub dividers: Vec<(Area, Layout)>,
+}
+
+/// Width of the line drawn between two split views
+const DIVIDER_SIZE: u16 = 1;
+
+impl Node {
+    fn layout(&self, area: Area, out: &mut LayoutResult) {
+        match self {
+            Node::Leaf(id) => out.views.push((*id, area)),
+            Node::Container {
+                layout,
+                children,
+                ratios,
+            } => {
+                let total = match layout {
+                    Layout::Vertical => area.width,
+                    Layout::Horizontal => area.height,
+                };
+                let dividers = DIVIDER_SIZE * (children.len() as u16).saturating_sub(1);
+                let available = total.saturating_sub(dividers);
+
+                let mut offset = 0u16;
+                for (i, child) in children.iter().enumerate() {
+                    let is_last = i + 1 == children.len();
+                    // The last child takes whatever rounding left over.
+                    let size = if is_last {
+                        total.saturating_sub(offset)
+                    } else {
+                        (available as f32 * ratios[i]).floor() as u16
+                    };
+
+                    let child_area = match layout {
+                        Layout::Vertical => Area::new(area.x + offset, area.y, size, area.height),
+                        Layout::Horizontal => Area::new(area.x, area.y + offset, area.width, size),
+                    };
+                    child.layout(child_area, out);
+                    offset += size;
+
+                    if !is_last {
+                        let divider = match layout {
+                            Layout::Vertical => {
+                                Area::new(area.x + offset, area.y, DIVIDER_SIZE, area.height)
+                            }
+                            Layout::Horizontal => {
+                                Area::new(area.x, area.y + offset, area.width, DIVIDER_SIZE)
+                            }
+                        };
+                        out.dividers.push((divider, *layout));
+                        offset += DIVIDER_SIZE;
+                    }
+                }
+            }
+        }
+    }
+}
+
 /// Layout tree managing splits
 #[derive(Debug)]
 pub struct Tree {
@@ -144,6 +226,13 @@ impl Tree {
         self.root.views()
     }
 
+    /// Compute where each view goes inside `area`
+    pub fn layout(&self, area: Area) -> LayoutResult {
+        let mut out = LayoutResult::default();
+        self.root.layout(area, &mut out);
+        out
+    }
+
     /// Split the focused view
     pub fn split(&mut self, new_view_id: ViewId, layout: Layout) {
         let old_focus = self.focus;
@@ -156,14 +245,17 @@ impl Tree {
         self.root = self.split_node(&self.root, view_id, new_view_id, layout);
     }
 
-    fn split_node(&self, node: &Node, view_id: ViewId, new_view_id: ViewId, layout: Layout) -> Node {
+    fn split_node(
+        &self,
+        node: &Node,
+        view_id: ViewId,
+        new_view_id: ViewId,
+        layout: Layout,
+    ) -> Node {
         match node {
             Node::Leaf(id) if *id == view_id => {
                 // Found the view to split
-                Node::container(
-                    layout,
-                    vec![Node::leaf(*id), Node::leaf(new_view_id)],
-                )
+                Node::container(layout, vec![Node::leaf(*id), Node::leaf(new_view_id)])
             }
             Node::Leaf(id) => Node::leaf(*id),
             Node::Container {
@@ -270,5 +362,34 @@ impl Tree {
 impl Default for Tree {
     fn default() -> Self {
         Self::new(ViewId::default())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_vertical_split_fills_width() {
+        let first = ViewId::next();
+        let second = ViewId::next();
+        let mut tree = Tree::new(first);
+        tree.split(second, Layout::Vertical);
+
+        let result = tree.layout(Area::new(0, 1, 81, 20));
+        assert_eq!(result.views.len(), 2);
+        let (_, a) = result.views[0];
+        let (_, b) = result.views[1];
+        assert_eq!(a.width + b.width + DIVIDER_SIZE, 81);
+        assert_eq!(b.x, a.x + a.width + DIVIDER_SIZE);
+        assert_eq!(result.dividers.len(), 1);
+    }
+
+    #[test]
+    fn test_single_view_gets_whole_area() {
+        let view = ViewId::next();
+        let tree = Tree::new(view);
+        let area = Area::new(0, 1, 80, 22);
+        assert_eq!(tree.layout(area).views, vec![(view, area)]);
     }
 }

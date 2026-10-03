@@ -76,6 +76,34 @@ impl KeyEvent {
     }
 }
 
+impl Modifier {
+    /// Number of modifier keys held
+    fn count(&self) -> u8 {
+        self.ctrl as u8 + self.alt as u8 + self.shift as u8
+    }
+}
+
+impl std::fmt::Display for KeyEvent {
+    /// Human-readable form, e.g. `Ctrl+Shift+S`
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.modifiers.ctrl {
+            write!(f, "Ctrl+")?;
+        }
+        if self.modifiers.alt {
+            write!(f, "Alt+")?;
+        }
+        if self.modifiers.shift {
+            write!(f, "Shift+")?;
+        }
+        match &self.key {
+            Key::Char(' ') => write!(f, "Space"),
+            Key::Char(c) => write!(f, "{}", c.to_uppercase()),
+            Key::F(n) => write!(f, "F{n}"),
+            other => write!(f, "{other:?}"),
+        }
+    }
+}
+
 /// Key codes
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Key {
@@ -203,6 +231,10 @@ pub enum Action {
     ExecuteSearch(String),
     ExecuteOpen(String),
     ExecuteSaveAs(String),
+    /// First step of replace: the text to look for
+    ExecuteReplaceFind(String),
+    /// Second step of replace: (text to look for, replacement)
+    ExecuteReplace(String, String),
 
     // Misc
     Noop,
@@ -228,22 +260,10 @@ impl Default for Keymap {
         bindings.insert(KeyEvent::ctrl('q'), Action::Quit);
 
         // Navigation
-        bindings.insert(
-            KeyEvent::new(Key::Up, Modifier::NONE),
-            Action::MoveUp,
-        );
-        bindings.insert(
-            KeyEvent::new(Key::Down, Modifier::NONE),
-            Action::MoveDown,
-        );
-        bindings.insert(
-            KeyEvent::new(Key::Left, Modifier::NONE),
-            Action::MoveLeft,
-        );
-        bindings.insert(
-            KeyEvent::new(Key::Right, Modifier::NONE),
-            Action::MoveRight,
-        );
+        bindings.insert(KeyEvent::new(Key::Up, Modifier::NONE), Action::MoveUp);
+        bindings.insert(KeyEvent::new(Key::Down, Modifier::NONE), Action::MoveDown);
+        bindings.insert(KeyEvent::new(Key::Left, Modifier::NONE), Action::MoveLeft);
+        bindings.insert(KeyEvent::new(Key::Right, Modifier::NONE), Action::MoveRight);
         bindings.insert(
             KeyEvent::new(Key::Left, Modifier::CTRL),
             Action::MoveWordLeft,
@@ -256,32 +276,20 @@ impl Default for Keymap {
             KeyEvent::new(Key::Home, Modifier::NONE),
             Action::MoveLineStart,
         );
-        bindings.insert(
-            KeyEvent::new(Key::End, Modifier::NONE),
-            Action::MoveLineEnd,
-        );
+        bindings.insert(KeyEvent::new(Key::End, Modifier::NONE), Action::MoveLineEnd);
         bindings.insert(
             KeyEvent::new(Key::Home, Modifier::CTRL),
             Action::MoveFileStart,
         );
-        bindings.insert(
-            KeyEvent::new(Key::End, Modifier::CTRL),
-            Action::MoveFileEnd,
-        );
-        bindings.insert(
-            KeyEvent::new(Key::PageUp, Modifier::NONE),
-            Action::PageUp,
-        );
+        bindings.insert(KeyEvent::new(Key::End, Modifier::CTRL), Action::MoveFileEnd);
+        bindings.insert(KeyEvent::new(Key::PageUp, Modifier::NONE), Action::PageUp);
         bindings.insert(
             KeyEvent::new(Key::PageDown, Modifier::NONE),
             Action::PageDown,
         );
         bindings.insert(KeyEvent::ctrl('g'), Action::GotoLine);
         bindings.insert(KeyEvent::ctrl('r'), Action::GotoSymbol);
-        bindings.insert(
-            KeyEvent::new(Key::Left, Modifier::ALT),
-            Action::JumpBack,
-        );
+        bindings.insert(KeyEvent::new(Key::Left, Modifier::ALT), Action::JumpBack);
         bindings.insert(
             KeyEvent::new(Key::Right, Modifier::ALT),
             Action::JumpForward,
@@ -304,10 +312,7 @@ impl Default for Keymap {
             KeyEvent::new(Key::Backspace, Modifier::NONE),
             Action::Backspace,
         );
-        bindings.insert(
-            KeyEvent::new(Key::Delete, Modifier::NONE),
-            Action::Delete,
-        );
+        bindings.insert(KeyEvent::new(Key::Delete, Modifier::NONE), Action::Delete);
         bindings.insert(KeyEvent::ctrl_shift('k'), Action::DeleteLine);
         bindings.insert(KeyEvent::ctrl_shift('d'), Action::DuplicateLine);
         bindings.insert(
@@ -318,14 +323,8 @@ impl Default for Keymap {
             KeyEvent::new(Key::Down, Modifier::CTRL_SHIFT),
             Action::MoveLineDown,
         );
-        bindings.insert(
-            KeyEvent::new(Key::Tab, Modifier::NONE),
-            Action::Indent,
-        );
-        bindings.insert(
-            KeyEvent::new(Key::Tab, Modifier::SHIFT),
-            Action::Unindent,
-        );
+        bindings.insert(KeyEvent::new(Key::Tab, Modifier::NONE), Action::Indent);
+        bindings.insert(KeyEvent::new(Key::Tab, Modifier::SHIFT), Action::Unindent);
         bindings.insert(KeyEvent::ctrl('/'), Action::ToggleComment);
 
         // Selection
@@ -369,24 +368,42 @@ impl Default for Keymap {
         bindings.insert(KeyEvent::ctrl('e'), Action::UseSelectionForFind);
 
         // Buffer/Tab management
-        bindings.insert(
-            KeyEvent::new(Key::Tab, Modifier::CTRL),
-            Action::NextBuffer,
-        );
+        bindings.insert(KeyEvent::new(Key::Tab, Modifier::CTRL), Action::NextBuffer);
         bindings.insert(
             KeyEvent::new(Key::Tab, Modifier::CTRL_SHIFT),
             Action::PreviousBuffer,
         );
+        // Most terminals never send Ctrl+Tab or Ctrl+digit, so every buffer
+        // shortcut also has a variant that survives a plain terminal.
+        bindings.insert(
+            KeyEvent::new(Key::PageDown, Modifier::CTRL),
+            Action::NextBuffer,
+        );
+        bindings.insert(
+            KeyEvent::new(Key::PageUp, Modifier::CTRL),
+            Action::PreviousBuffer,
+        );
         for i in 1..=9 {
-            bindings.insert(
-                KeyEvent::ctrl(char::from_digit(i, 10).unwrap()),
-                Action::SwitchToBuffer(i as usize),
-            );
+            let digit = char::from_digit(i, 10).unwrap();
+            bindings.insert(KeyEvent::ctrl(digit), Action::SwitchToBuffer(i as usize));
+            bindings.insert(KeyEvent::alt(digit), Action::SwitchToBuffer(i as usize));
         }
 
         // Splits
         bindings.insert(KeyEvent::ctrl('\\'), Action::SplitVertical);
         bindings.insert(KeyEvent::ctrl_shift('\\'), Action::SplitHorizontal);
+        // Legacy terminals send Ctrl+\ as the same byte as Ctrl+4, so the
+        // Alt variants are the ones that work everywhere.
+        bindings.insert(KeyEvent::alt('\\'), Action::SplitVertical);
+        bindings.insert(KeyEvent::alt('-'), Action::SplitHorizontal);
+        bindings.insert(
+            KeyEvent::new(Key::F(6), Modifier::NONE),
+            Action::FocusNextSplit,
+        );
+        bindings.insert(
+            KeyEvent::new(Key::F(6), Modifier::SHIFT),
+            Action::FocusPreviousSplit,
+        );
 
         // LSP
         bindings.insert(KeyEvent::ctrl(' '), Action::Autocomplete);
@@ -398,7 +415,10 @@ impl Default for Keymap {
             KeyEvent::new(Key::F(12), Modifier::SHIFT),
             Action::FindReferences,
         );
-        bindings.insert(KeyEvent::new(Key::F(2), Modifier::NONE), Action::RenameSymbol);
+        bindings.insert(
+            KeyEvent::new(Key::F(2), Modifier::NONE),
+            Action::RenameSymbol,
+        );
         bindings.insert(KeyEvent::ctrl('.'), Action::QuickFix);
         bindings.insert(KeyEvent::ctrl_shift(' '), Action::SignatureHelp);
 
@@ -421,5 +441,32 @@ impl Keymap {
 
     pub fn insert(&mut self, event: KeyEvent, action: Action) {
         self.bindings.insert(event, action);
+    }
+
+    /// The simplest key bound to `action` (fewest modifiers), if any
+    pub fn key_for(&self, action: &Action) -> Option<&KeyEvent> {
+        self.bindings
+            .iter()
+            .filter(|(_, bound)| *bound == action)
+            .map(|(key, _)| key)
+            .min_by_key(|key| (key.modifiers.count(), key.to_string()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_key_for_prefers_fewest_modifiers() {
+        let keymap = Keymap::default();
+        assert_eq!(keymap.key_for(&Action::Redo), Some(&KeyEvent::ctrl('y')));
+        assert_eq!(
+            keymap
+                .key_for(&Action::Save)
+                .map(ToString::to_string)
+                .as_deref(),
+            Some("Ctrl+S")
+        );
     }
 }

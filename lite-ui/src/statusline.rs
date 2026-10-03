@@ -1,7 +1,9 @@
 use crate::{Component, Context};
 use lite_core::RopeExt;
+use lite_view::{LineEnding, Severity};
 use ratatui::prelude::*;
 use ratatui::widgets::Paragraph;
+use unicode_width::UnicodeWidthStr;
 
 /// Status line at the bottom of the editor
 pub struct StatusLine;
@@ -20,63 +22,73 @@ impl Default for StatusLine {
 
 impl Component for StatusLine {
     fn render(&self, frame: &mut Frame, area: Rect, ctx: &Context) {
-        let doc = ctx.editor.current_doc();
-        let _view = ctx.editor.current_view();
-        let selection = doc.selection(ctx.editor.tree.focus());
+        let editor = &*ctx.editor;
+        let theme = &editor.theme;
+        let doc = editor.current_doc();
+        let selection = doc.selection(editor.tree.focus());
+        let base_style = theme.statusline.to_ratatui();
 
-        // Left side: mode, filename, modified
-        let modified_indicator = if doc.modified { " [+]" } else { "" };
-        let filename = doc.name();
-
-        // Calculate cursor position
-        let cursor_char = selection.cursor();
-        let cursor_pos = doc.rope.char_to_position(cursor_char);
-        let line = cursor_pos.line + 1;
-        let col = cursor_pos.col + 1;
-
-        // Right side: position, language, encoding
-        let language = doc.language.as_deref().unwrap_or("text");
-        let encoding = doc.encoding;
-        let line_ending = match doc.line_ending {
-            lite_view::LineEnding::LF => "LF",
-            lite_view::LineEnding::CRLF => "CRLF",
+        let (left_text, left_style) = match &editor.status_msg {
+            Some(msg) => {
+                let fg = match msg.severity {
+                    Severity::Info => theme.info,
+                    Severity::Warning => theme.warning,
+                    Severity::Error => theme.error,
+                };
+                (format!(" {}", msg.text), base_style.patch(fg.to_ratatui()))
+            }
+            None => {
+                let modified = if doc.is_modified() { " [+]" } else { "" };
+                (format!(" {}{}", doc.name(), modified), base_style)
+            }
         };
 
-        let position_info = format!("{}:{}", line, col);
-        let right_info = format!(" {} | {} | {} ", language, encoding, line_ending);
-
-        // Check for status message
-        let (left_text, _left_style) = if let Some((msg, severity)) = &ctx.editor.status_msg {
-            let style = match severity {
-                lite_view::Severity::Info => ctx.editor.theme.info.to_ratatui(),
-                lite_view::Severity::Warning => ctx.editor.theme.warning.to_ratatui(),
-                lite_view::Severity::Error => ctx.editor.theme.error.to_ratatui(),
-            };
-            (msg.clone(), style)
+        let pos = doc.rope.char_to_position(selection.cursor());
+        let cursors = if selection.len() > 1 {
+            format!("{} cursors  ", selection.len())
         } else {
-            (
-                format!(" {}{}", filename, modified_indicator),
-                ctx.editor.theme.statusline.to_ratatui(),
-            )
+            String::new()
         };
-
-        // Build the status line
-        let status_style = ctx.editor.theme.statusline.to_ratatui();
-
-        // Calculate padding
-        let left_len = left_text.len();
-        let right_len = position_info.len() + right_info.len();
-        let padding = area.width as usize - left_len.min(area.width as usize) - right_len.min(area.width as usize - left_len);
-
-        let status_text = format!(
-            "{}{}{}{}",
-            left_text,
-            " ".repeat(padding.max(1)),
-            position_info,
-            right_info
+        let line_ending = match doc.line_ending {
+            LineEnding::LF => "LF",
+            LineEnding::CRLF => "CRLF",
+        };
+        let right_text = format!(
+            "{}{}:{}  {}  {}  {} ",
+            cursors,
+            pos.line + 1,
+            pos.col + 1,
+            doc.language.as_deref().unwrap_or("text"),
+            doc.encoding,
+            line_ending
         );
 
-        let status = Paragraph::new(status_text).style(status_style);
-        frame.render_widget(status, area);
+        let width = area.width as usize;
+        let right_width = right_text.width();
+        // The message wins over the right-hand info when space runs out.
+        let (left_text, right_text) = if left_text.width() + right_width + 1 > width {
+            (truncate_to_width(&left_text, width), String::new())
+        } else {
+            (left_text, right_text)
+        };
+        let padding = width.saturating_sub(left_text.width() + right_text.width());
+
+        let line = Line::from(vec![
+            Span::styled(left_text, left_style),
+            Span::styled(" ".repeat(padding), base_style),
+            Span::styled(right_text, base_style),
+        ]);
+        frame.render_widget(Paragraph::new(line).style(base_style), area);
     }
+}
+
+/// Cut `text` so it takes at most `max_width` terminal columns
+pub(crate) fn truncate_to_width(text: &str, max_width: usize) -> String {
+    let mut width = 0;
+    text.chars()
+        .take_while(|c| {
+            width += unicode_width::UnicodeWidthChar::width(*c).unwrap_or(0);
+            width <= max_width
+        })
+        .collect()
 }

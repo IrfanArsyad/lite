@@ -19,6 +19,12 @@ pub struct Theme {
     pub tabline_active: Style,
     pub popup: Style,
     pub popup_border: Style,
+    /// Shortcut labels in the bottom help bar
+    pub helpbar: Style,
+    /// Key chips in the bottom help bar
+    pub helpbar_key: Style,
+    /// Line between split views
+    pub divider: Style,
 
     // Syntax highlighting
     pub keyword: Style,
@@ -71,6 +77,16 @@ impl Default for Theme {
                 .bg(Color::Rgb(33, 37, 43))
                 .fg(Color::Rgb(171, 178, 191)),
             popup_border: Style::new().fg(Color::Rgb(76, 82, 99)),
+            helpbar: Style::new()
+                .bg(Color::Rgb(33, 37, 43))
+                .fg(Color::Rgb(171, 178, 191)),
+            helpbar_key: Style::new()
+                .bg(Color::Rgb(97, 175, 239))
+                .fg(Color::Rgb(40, 44, 52))
+                .bold(),
+            divider: Style::new()
+                .bg(Color::Rgb(40, 44, 52))
+                .fg(Color::Rgb(62, 68, 81)),
 
             // Syntax - One Dark colors
             keyword: Style::new().fg(Color::Rgb(198, 120, 221)), // purple
@@ -78,9 +94,9 @@ impl Default for Theme {
             type_name: Style::new().fg(Color::Rgb(229, 192, 123)), // yellow
             variable: Style::new().fg(Color::Rgb(224, 108, 117)), // red
             constant: Style::new().fg(Color::Rgb(209, 154, 102)), // orange
-            string: Style::new().fg(Color::Rgb(152, 195, 121)), // green
-            number: Style::new().fg(Color::Rgb(209, 154, 102)), // orange
-            comment: Style::new().fg(Color::Rgb(92, 99, 112)),  // gray
+            string: Style::new().fg(Color::Rgb(152, 195, 121)),  // green
+            number: Style::new().fg(Color::Rgb(209, 154, 102)),  // orange
+            comment: Style::new().fg(Color::Rgb(92, 99, 112)),   // gray
             operator: Style::new().fg(Color::Rgb(86, 182, 194)), // cyan
             punctuation: Style::new().fg(Color::Rgb(171, 178, 191)),
 

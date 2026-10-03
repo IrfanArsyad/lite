@@ -43,6 +43,11 @@ pub trait Component {
     fn is_popup(&self) -> bool {
         false
     }
+
+    /// Handle pasted text. Returns true when the component took it.
+    fn paste(&mut self, _text: &str) -> bool {
+        false
+    }
 }
 
 /// Manages layered UI components
@@ -106,6 +111,11 @@ impl Compositor {
         }
 
         EventResult::Ignored
+    }
+
+    /// Give pasted text to the top component. Returns true when it was taken.
+    pub fn paste(&mut self, text: &str) -> bool {
+        self.layers.last_mut().is_some_and(|top| top.paste(text))
     }
 
     /// Get cursor position from top component that provides one

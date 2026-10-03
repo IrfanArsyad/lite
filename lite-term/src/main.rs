@@ -1,10 +1,13 @@
 use anyhow::Result;
-use lite_term::Application;
+use lite_config::Config;
+use lite_term::{restore_terminal, Application, Event};
 use std::env;
 use std::process::Command;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const REPO: &str = "IrfanArsyad/lite";
+/// Seconds to wait for GitHub before giving up on the background update check
+const UPDATE_CHECK_TIMEOUT_SECS: &str = "2";
 
 fn print_help() {
     println!("lite - A lightweight terminal text editor");
@@ -19,165 +22,166 @@ fn print_help() {
     println!();
     println!("EXAMPLES:");
     println!("    lite                  Open new buffer");
-    println!("    lite file.txt         Open file");
+    println!("    lite file.txt         Open file (created on first save if missing)");
     println!("    lite a.rs b.rs        Open multiple files");
     println!("    lite --update         Update lite to latest");
-}
-
-fn print_version() {
-    println!("lite {}", VERSION);
-}
-
-fn check_for_update() -> Option<String> {
-    let output = Command::new("curl")
-        .args(["-sL", "--connect-timeout", "2", &format!("https://api.github.com/repos/{}/releases/latest", REPO)])
-        .output()
-        .ok()?;
-
-    let json = String::from_utf8_lossy(&output.stdout);
-    if let Some(start) = json.find("\"tag_name\"") {
-        let rest = &json[start..];
-        if let Some(colon) = rest.find(':') {
-            let after_colon = &rest[colon + 1..];
-            let trimmed = after_colon.trim().trim_start_matches('"');
-            if let Some(end) = trimmed.find('"') {
-                let latest = trimmed[..end].trim_start_matches('v').to_string();
-                if latest != VERSION {
-                    return Some(latest);
-                }
-            }
-        }
+    if let Some(path) = Config::default_path() {
+        println!();
+        println!("CONFIG:");
+        println!("    {}", path.display());
     }
-    None
+}
+
+fn install_url() -> String {
+    format!("https://raw.githubusercontent.com/{REPO}/main/scripts/install.sh")
+}
+
+/// Latest released version on GitHub, without the leading `v`
+fn fetch_latest_version(timeout_secs: Option<&str>) -> Option<String> {
+    let url = format!("https://api.github.com/repos/{REPO}/releases/latest");
+    let mut cmd = Command::new("curl");
+    cmd.arg("-fsSL");
+    if let Some(secs) = timeout_secs {
+        cmd.args(["--connect-timeout", secs, "--max-time", secs]);
+    }
+    let output = cmd.arg(url).output().ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    parse_tag_name(&String::from_utf8_lossy(&output.stdout))
+}
+
+/// Pull `tag_name` out of the GitHub release JSON without a JSON parser
+fn parse_tag_name(json: &str) -> Option<String> {
+    let rest = &json[json.find("\"tag_name\"")?..];
+    let after_colon = rest[rest.find(':')? + 1..].trim_start().strip_prefix('"')?;
+    let tag = &after_colon[..after_colon.find('"')?];
+    Some(tag.trim_start_matches('v').to_string())
+}
+
+/// Whether `candidate` is a newer `major.minor.patch` version than `current`
+fn is_newer(candidate: &str, current: &str) -> bool {
+    fn parse(v: &str) -> Option<Vec<u64>> {
+        v.split('-')
+            .next()?
+            .split('.')
+            .map(|part| part.parse().ok())
+            .collect()
+    }
+    match (parse(candidate), parse(current)) {
+        (Some(a), Some(b)) => a > b,
+        _ => false,
+    }
+}
+
+fn run_install_script() -> bool {
+    Command::new("bash")
+        .args(["-c", &format!("curl -fsSL {} | bash", install_url())])
+        .status()
+        .is_ok_and(|s| s.success())
 }
 
 fn update() -> Result<()> {
     println!("Checking for updates...");
 
-    // Check latest version from GitHub API
-    let output = Command::new("curl")
-        .args(["-sL", &format!("https://api.github.com/repos/{}/releases/latest", REPO)])
-        .output();
-
-    let latest_version = match output {
-        Ok(out) => {
-            let json = String::from_utf8_lossy(&out.stdout);
-            // Simple parse for tag_name
-            if let Some(start) = json.find("\"tag_name\"") {
-                let rest = &json[start..];
-                if let Some(colon) = rest.find(':') {
-                    let after_colon = &rest[colon + 1..];
-                    let trimmed = after_colon.trim().trim_start_matches('"');
-                    if let Some(end) = trimmed.find('"') {
-                        Some(trimmed[..end].trim_start_matches('v').to_string())
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
-            } else {
-                None
-            }
-        }
-        Err(_) => None,
-    };
-
-    match latest_version {
-        Some(latest) if latest != VERSION => {
-            println!("New version available: v{} (current: v{})", latest, VERSION);
+    match fetch_latest_version(None) {
+        Some(latest) if is_newer(&latest, VERSION) => {
+            println!("New version available: v{latest} (current: v{VERSION})");
             println!("Updating...");
             println!();
-
-            // Run install script
-            let status = Command::new("bash")
-                .args(["-c", &format!(
-                    "curl -sL https://raw.githubusercontent.com/{}/main/scripts/install.sh | bash",
-                    REPO
-                )])
-                .status();
-
-            match status {
-                Ok(s) if s.success() => {
-                    println!();
-                    println!("Update complete! Restart lite to use the new version.");
-                }
-                _ => {
-                    eprintln!("Update failed. Try manually:");
-                    eprintln!("  curl -fsSL https://raw.githubusercontent.com/{}/main/scripts/install.sh | bash", REPO);
-                }
+            if run_install_script() {
+                println!();
+                println!("Update complete! Restart lite to use the new version.");
+            } else {
+                eprintln!("Update failed. Try manually:");
+                eprintln!("  curl -fsSL {} | bash", install_url());
             }
         }
-        Some(_) => {
-            println!("Already up to date (v{})", VERSION);
-        }
+        Some(_) => println!("Already up to date (v{VERSION})"),
         None => {
-            println!("Could not check for updates. Reinstalling...");
-            let _ = Command::new("bash")
-                .args(["-c", &format!(
-                    "curl -sL https://raw.githubusercontent.com/{}/main/scripts/install.sh | bash",
-                    REPO
-                )])
-                .status();
+            eprintln!("Could not reach GitHub to check for updates.");
+            eprintln!("To reinstall manually:");
+            eprintln!("  curl -fsSL {} | bash", install_url());
         }
     }
 
     Ok(())
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
-    let args: Vec<String> = env::args().collect();
+/// Restore the terminal before the panic message is printed; with
+/// `panic = "abort"` no destructor would get the chance to.
+fn install_panic_hook() {
+    let default_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        restore_terminal();
+        default_hook(info);
+    }));
+}
 
-    // Handle CLI flags
-    if args.len() > 1 {
-        match args[1].as_str() {
-            "-h" | "--help" => {
-                print_help();
-                return Ok(());
-            }
-            "-v" | "--version" => {
-                print_version();
-                return Ok(());
-            }
-            "-u" | "--update" => {
-                return update();
-            }
-            _ => {}
+fn main() -> Result<()> {
+    let args: Vec<String> = env::args().skip(1).collect();
+
+    match args.first().map(String::as_str) {
+        Some("-h" | "--help") => {
+            print_help();
+            return Ok(());
         }
+        Some("-v" | "--version") => {
+            println!("lite {VERSION}");
+            return Ok(());
+        }
+        Some("-u" | "--update") => return update(),
+        _ => {}
     }
 
-    // Create application
-    let mut app = Application::new()?;
+    let (config, config_error) = match Config::load() {
+        Ok(config) => (config, None),
+        Err(err) => (Config::default(), Some(err)),
+    };
 
-    // Open files if provided as arguments
-    for path in args.iter().skip(1) {
-        if !path.starts_with('-') {
-            if let Err(e) = app.open(path) {
-                eprintln!("Error opening {}: {}", path, e);
-            }
+    install_panic_hook();
+    let mut app = Application::new(config)?;
+
+    for path in args.iter().filter(|a| !a.starts_with('-')) {
+        if let Err(e) = app.open(path) {
+            app.set_notice(format!("Error opening {path}: {e}"));
         }
     }
+    if let Some(err) = config_error {
+        app.set_notice(format!("{err}. Using default settings."));
+    }
 
-    // Check for updates in background (non-blocking)
-    std::thread::spawn(|| {
-        if let Some(new_version) = check_for_update() {
-            // Write to a temp file that we can read later
-            let _ = std::fs::write("/tmp/lite_update_available", new_version);
+    let sender = app.event_sender();
+    std::thread::spawn(move || {
+        if let Some(latest) = fetch_latest_version(Some(UPDATE_CHECK_TIMEOUT_SECS)) {
+            if is_newer(&latest, VERSION) {
+                let _ = sender.send(Event::Notice(format!(
+                    "Update available: v{VERSION} -> v{latest}. Run 'lite --update' to update."
+                )));
+            }
         }
     });
 
-    // Check if update notification exists from previous check
-    if let Ok(new_version) = std::fs::read_to_string("/tmp/lite_update_available") {
-        app.set_update_notice(format!(
-            "Update available: v{} -> v{}. Run 'lite --update' to update.",
-            VERSION, new_version.trim()
-        ));
-        let _ = std::fs::remove_file("/tmp/lite_update_available");
+    let runtime = tokio::runtime::Builder::new_current_thread().build()?;
+    runtime.block_on(app.run())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_tag_name() {
+        let json = r#"{"url":"x","tag_name": "v1.2.3","name":"Release"}"#;
+        assert_eq!(parse_tag_name(json), Some("1.2.3".to_string()));
+        assert_eq!(parse_tag_name("{}"), None);
     }
 
-    // Run the application
-    app.run().await?;
-
-    Ok(())
+    #[test]
+    fn test_is_newer_compares_numerically() {
+        assert!(is_newer("0.10.0", "0.9.9"));
+        assert!(!is_newer("0.1.0", "0.1.0"));
+        assert!(!is_newer("0.0.9", "0.1.0"));
+        assert!(!is_newer("garbage", "0.1.0"));
+    }
 }

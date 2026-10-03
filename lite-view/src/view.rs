@@ -18,6 +18,10 @@ impl Default for ViewId {
     }
 }
 
+/// Line numbers keep at least this many digits so the gutter does not
+/// jump while a short file grows.
+const MIN_GUTTER_DIGITS: u16 = 3;
+
 /// A view into a document
 #[derive(Debug)]
 pub struct View {
@@ -27,7 +31,7 @@ pub struct View {
     pub doc_id: DocumentId,
     /// Vertical scroll offset (first visible line)
     pub scroll_y: usize,
-    /// Horizontal scroll offset (first visible column)
+    /// Horizontal scroll offset (first visible display column)
     pub scroll_x: usize,
     /// Viewport width in characters
     pub width: u16,
@@ -62,26 +66,35 @@ impl View {
         self.height = height;
     }
 
-    /// Ensure cursor is visible, adjusting scroll if needed
-    pub fn ensure_cursor_visible(&mut self, cursor_line: usize, cursor_col: usize, scrolloff: usize) {
-        let scrolloff = scrolloff.min(self.height as usize / 2);
+    /// Ensure cursor is visible, adjusting scroll if needed.
+    /// `cursor_col` is a display column, not a char offset.
+    pub fn ensure_cursor_visible(
+        &mut self,
+        cursor_line: usize,
+        cursor_col: usize,
+        scrolloff: usize,
+    ) {
+        let height = self.height as usize;
+        if height == 0 {
+            return;
+        }
+        let scrolloff = scrolloff.min(height.saturating_sub(1) / 2);
 
         // Vertical scrolling
         if cursor_line < self.scroll_y + scrolloff {
             self.scroll_y = cursor_line.saturating_sub(scrolloff);
         }
-        let bottom_limit = self.scroll_y + self.height as usize - scrolloff - 1;
-        if cursor_line > bottom_limit {
-            self.scroll_y = cursor_line + scrolloff + 1 - self.height as usize;
+        if cursor_line + scrolloff >= self.scroll_y + height {
+            self.scroll_y = cursor_line + scrolloff + 1 - height;
         }
 
         // Horizontal scrolling
-        let text_width = self.text_width() as usize;
+        let text_width = (self.text_width() as usize).max(1);
         if cursor_col < self.scroll_x {
             self.scroll_x = cursor_col;
         }
         if cursor_col >= self.scroll_x + text_width {
-            self.scroll_x = cursor_col - text_width + 1;
+            self.scroll_x = cursor_col + 1 - text_width;
         }
     }
 
@@ -111,12 +124,8 @@ impl View {
 
     /// Update gutter width based on line count
     pub fn update_gutter_width(&mut self, line_count: usize) {
-        // Calculate digits needed for line numbers + padding
-        let digits = if line_count == 0 {
-            1
-        } else {
-            (line_count as f64).log10().floor() as u16 + 1
-        };
-        self.gutter_width = digits + 2; // 1 space on each side
+        let digits = line_count.max(1).ilog10() as u16 + 1;
+        // One space on each side of the number.
+        self.gutter_width = digits.max(MIN_GUTTER_DIGITS) + 2;
     }
 }

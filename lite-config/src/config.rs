@@ -1,17 +1,60 @@
 use serde::{Deserialize, Serialize};
+use std::path::{Path, PathBuf};
+
+/// Errors raised while reading the user's config file
+#[derive(Debug, thiserror::Error)]
+pub enum ConfigError {
+    #[error("cannot read {path}: {source}")]
+    Read {
+        path: PathBuf,
+        source: std::io::Error,
+    },
+    #[error("invalid config in {path}: {source}")]
+    Parse {
+        path: PathBuf,
+        source: toml::de::Error,
+    },
+}
 
 /// Main configuration structure
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Config {
     pub editor: EditorConfig,
 }
 
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            editor: EditorConfig::default(),
+impl Config {
+    /// Default location: `$XDG_CONFIG_HOME/lite/config.toml` on Linux
+    pub fn default_path() -> Option<PathBuf> {
+        directories::ProjectDirs::from("", "", "lite")
+            .map(|dirs| dirs.config_dir().join("config.toml"))
+    }
+
+    /// Load the config file at the default location. A missing file is not an
+    /// error and yields the defaults.
+    pub fn load() -> Result<Self, ConfigError> {
+        match Self::default_path() {
+            Some(path) => Self::load_from(&path),
+            None => Ok(Self::default()),
         }
+    }
+
+    /// Load the config file at `path`, falling back to defaults when it does not exist
+    pub fn load_from(path: &Path) -> Result<Self, ConfigError> {
+        let text = match std::fs::read_to_string(path) {
+            Ok(text) => text,
+            Err(err) if err.kind() == std::io::ErrorKind::NotFound => return Ok(Self::default()),
+            Err(source) => {
+                return Err(ConfigError::Read {
+                    path: path.to_path_buf(),
+                    source,
+                })
+            }
+        };
+        toml::from_str(&text).map_err(|source| ConfigError::Parse {
+            path: path.to_path_buf(),
+            source,
+        })
     }
 }
 
@@ -67,4 +110,24 @@ impl Default for EditorConfig {
 pub enum IndentStyle {
     Tabs,
     Spaces,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_partial_config_keeps_defaults() {
+        let config: Config =
+            toml::from_str("[editor]\ntab_width = 2\nindent_style = \"tabs\"\n").unwrap();
+        assert_eq!(config.editor.tab_width, 2);
+        assert_eq!(config.editor.indent_style, IndentStyle::Tabs);
+        assert_eq!(config.editor.scrolloff, EditorConfig::default().scrolloff);
+    }
+
+    #[test]
+    fn test_missing_file_gives_defaults() {
+        let config = Config::load_from(Path::new("/nonexistent/lite/config.toml")).unwrap();
+        assert_eq!(config.editor.tab_width, EditorConfig::default().tab_width);
+    }
 }
