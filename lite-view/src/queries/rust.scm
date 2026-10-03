@@ -6,7 +6,6 @@
   "break"
   "const"
   "continue"
-  "crate"
   "dyn"
   "else"
   "enum"
@@ -21,15 +20,11 @@
   "match"
   "mod"
   "move"
-  "mut"
   "pub"
   "ref"
   "return"
-  "self"
-  "Self"
   "static"
   "struct"
-  "super"
   "trait"
   "type"
   "union"
@@ -91,7 +86,6 @@
   "&"
   "|"
   "^"
-  "~"
   "<<"
   ">>"
   "+="
@@ -121,3 +115,9 @@
 
 ; Lifetimes
 (lifetime) @label
+
+; Keywords that are named nodes in this grammar
+(crate) @keyword
+(super) @keyword
+(self) @variable.builtin
+(mutable_specifier) @keyword

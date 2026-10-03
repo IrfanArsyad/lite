@@ -24,14 +24,10 @@
   "@namespace"
   "@keyframes"
   "@supports"
-  "@font-face"
-  "@page"
   "and"
   "or"
   "not"
   "only"
-  "from"
-  "to"
 ] @keyword
 
 ; Units

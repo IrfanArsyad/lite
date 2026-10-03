@@ -14,17 +14,14 @@
   "consteval"
   "constexpr"
   "constinit"
-  "const_cast"
   "continue"
   "decltype"
   "default"
   "delete"
   "do"
-  "dynamic_cast"
   "else"
   "enum"
   "explicit"
-  "export"
   "extern"
   "final"
   "for"
@@ -42,21 +39,17 @@
   "protected"
   "public"
   "register"
-  "reinterpret_cast"
   "requires"
   "return"
   "sizeof"
   "static"
   "static_assert"
-  "static_cast"
   "struct"
   "switch"
   "template"
-  "this"
   "throw"
   "try"
   "typedef"
-  "typeid"
   "typename"
   "union"
   "using"
@@ -87,7 +80,8 @@
 (true) @constant.builtin
 (false) @constant.builtin
 (null) @constant.builtin
-(nullptr) @constant.builtin
+(null) @constant.builtin
+(this) @variable.builtin
 
 ; Strings
 (string_literal) @string

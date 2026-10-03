@@ -43,7 +43,7 @@
 
 ; Functions
 (function_declaration name: (identifier) @function)
-(function name: (identifier) @function)
+(function_expression name: (identifier) @function)
 (method_definition name: (property_identifier) @function)
 (call_expression function: (identifier) @function.call)
 (call_expression function: (member_expression property: (property_identifier) @function.call))
@@ -118,7 +118,6 @@
   "||="
   "??="
   "??"
-  "?."
   "=>"
   "..."
 ] @operator
@@ -129,3 +128,5 @@
 
 ; This
 (this) @variable.builtin
+
+(optional_chain) @operator

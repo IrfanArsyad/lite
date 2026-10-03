@@ -29,8 +29,6 @@
   "_Atomic"
   "_Generic"
   "_Noreturn"
-  "_Static_assert"
-  "_Thread_local"
 ] @keyword
 
 ; Types

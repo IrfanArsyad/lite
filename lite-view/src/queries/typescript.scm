@@ -57,7 +57,7 @@
 
 ; Functions
 (function_declaration name: (identifier) @function)
-(function name: (identifier) @function)
+(function_expression name: (identifier) @function)
 (method_definition name: (property_identifier) @function)
 (call_expression function: (identifier) @function.call)
 (call_expression function: (member_expression property: (property_identifier) @function.call))
@@ -66,8 +66,8 @@
 ; Types
 (type_identifier) @type
 (predefined_type) @type.builtin
-(class_declaration name: (identifier) @type)
-(interface_declaration name: (identifier) @type)
+(class_declaration name: (type_identifier) @type)
+(interface_declaration name: (type_identifier) @type)
 (type_alias_declaration name: (type_identifier) @type)
 
 ; Variables
